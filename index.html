@@ -75,6 +75,12 @@
             text-shadow: 2px 2px 0 #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 20px;
         }
 
+        #cast-bar-container {
+            position: absolute; bottom: 80px; left: 50%; transform: translateX(-50%);
+            width: 200px; height: 10px; background: rgba(0,0,0,0.6); border-radius: 5px; display: none;
+        }
+        #cast-bar { width: 0%; height: 100%; background-color: #3498db; }
+
         #kill-feed { position: absolute; top: 20px; left: 20px; color: white; font-size: 14px; text-shadow: 1px 1px 0 #000; }
         #zone-warning {
             position: absolute; top: 15%; left: 50%; transform: translateX(-50%);
@@ -118,6 +124,8 @@
             <div class="ammo-row" style="color:#e74c3c">12g: <span id="ammo-12g">0</span></div>
             <div class="ammo-row" style="color:#fff;">Meds: <span id="count-meds">0</span></div>
         </div>
+
+        <div id="cast-bar-container"><div id="cast-bar"></div></div>
 
         <div id="inventory-ui">
             <div id="slot-1" class="inv-slot"><span class="slot-key">1</span><span class="slot-name">Empty</span><span class="slot-ammo"></span></div>
@@ -165,24 +173,19 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         
-        // Use Global ID from environment if available, else default
         const APP_ID_PATH = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
         const GAMES_COLLECTION = `artifacts/${APP_ID_PATH}/public/data/games`;
 
         let currentUser = null;
         let currentGameId = null;
-        let opponentId = null;
         let isHost = false;
-        let unsubscribeGame = null;
         
-        // Random Seed for Map
         let mapSeed = 12345;
         function seededRandom() {
             let x = Math.sin(mapSeed++) * 10000;
             return x - Math.floor(x);
         }
 
-        // --- Game Setup ---
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -195,7 +198,6 @@
         window.addEventListener('resize', resize);
         resize();
 
-        // Game Globals
         let gameState = 'MENU';
         let lastTime = 0;
         let gameTime = 0;
@@ -204,9 +206,8 @@
         const TILE_SIZE = 100;
         const MINIMAP_SIZE = 140;
 
-        // Entities
-        let player;
-        let opponent; // The other player
+        let player = null;
+        let opponent = null;
         let bullets = [];
         let obstacles = [];
         let walls = [];
@@ -225,14 +226,12 @@
         ];
         let zone = { x: MAP_SIZE/2, y: MAP_SIZE/2, radius: MAP_SIZE, phaseIdx: 1, damage: 1, damageTick: 0 };
 
-        // Assets
         const COLORS = {
             playerBody: '#f1c40f', opponentBody: '#e74c3c', playerHand: '#333',
             crate: '#8e44ad', chest: '#f1c40f', airdrop: '#e74c3c',
             tree: '#2ecc71', stone: '#95a5a6', bush: 'rgba(46, 204, 113, 0.85)',
             ground: '#78ab46', floorClub: '#922b21', floorHouse: '#d5d8dc',
             wall: '#2c3e50', roof: '#34495e', grid: 'rgba(0,0,0,0.1)',
-            // Gear
             pack1: '#95a5a6', pack2: '#3498db', pack3: '#2c3e50',
             vest1: '#95a5a6', vest2: '#2c3e50', vest3: '#000000'
         };
@@ -250,26 +249,27 @@
 
         const AMMO_TYPES = { '556mm': '#2ecc71', '762mm': '#3498db', '9mm': '#f1c40f', '12gauge': '#e74c3c', '308sub': '#1abc9c', 'none': 'transparent' };
 
-        // Inputs
         const keys = {};
         const mouse = { x: 0, y: 0, down: false, worldX: 0, worldY: 0 };
         window.addEventListener('keydown', e => {
+            if (!player) return;
             keys[e.code] = true;
-            if(e.key === '1') player?.switchSlot(0);
-            if(e.key === '2') player?.switchSlot(1);
-            if(e.key === '3') player?.switchSlot(2);
-            if(e.key === '0') player?.startHealing();
+            if(e.key === '1') player.switchSlot(0);
+            if(e.key === '2') player.switchSlot(1);
+            if(e.key === '3') player.switchSlot(2);
+            if(e.key === '0') player.startHealing();
         });
         window.addEventListener('keyup', e => {
+            if (!player) return;
             keys[e.code] = false;
-            if(e.code === 'KeyR') player?.reload();
+            if(e.code === 'KeyR') player.reload();
             if(e.code === 'KeyF') interact();
         });
         window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
         window.addEventListener('mousedown', () => mouse.down = true);
         window.addEventListener('mouseup', () => mouse.down = false);
 
-        // --- Firebase Matchmaking ---
+        // --- Firebase Logic ---
 
         const btn = document.getElementById('find-match-btn');
         const statusTxt = document.getElementById('match-status');
@@ -278,7 +278,6 @@
             if (user) {
                 currentUser = user;
                 btn.disabled = false;
-                console.log("Logged in:", user.uid);
             } else {
                 signInAnonymously(auth);
             }
@@ -290,150 +289,100 @@
             statusTxt.innerText = "Searching for open games...";
 
             try {
-                // 1. Look for 'waiting' games
                 const q = query(collection(db, GAMES_COLLECTION), where("status", "==", "waiting"));
                 const querySnapshot = await getDocs(q);
                 let foundGame = null;
 
                 querySnapshot.forEach((doc) => {
-                    // Check if it's not my own game (just in case)
                     if (doc.data().hostId !== currentUser.uid && !doc.data().guestId) {
                         foundGame = doc;
                     }
                 });
 
                 if (foundGame) {
-                    // Join Game
                     statusTxt.innerText = "Game found! Joining...";
                     currentGameId = foundGame.id;
                     isHost = false;
-                    
-                    // Update Game Doc
                     await updateDoc(doc(db, GAMES_COLLECTION, currentGameId), {
-                        guestId: currentUser.uid,
-                        status: 'active',
-                        startTime: Date.now()
+                        guestId: currentUser.uid, status: 'active', startTime: Date.now()
                     });
-                    
                     startGameListener(currentGameId);
-
                 } else {
-                    // Create Game
                     statusTxt.innerText = "Creating new game... Waiting for opponent.";
                     isHost = true;
-                    mapSeed = Math.floor(Math.random() * 100000); // Host sets seed
-
+                    mapSeed = Math.floor(Math.random() * 100000);
                     const docRef = await addDoc(collection(db, GAMES_COLLECTION), {
-                        hostId: currentUser.uid,
-                        guestId: null,
-                        status: 'waiting',
-                        seed: mapSeed,
-                        createdAt: Date.now()
+                        hostId: currentUser.uid, guestId: null, status: 'waiting',
+                        seed: mapSeed, createdAt: Date.now()
                     });
-                    
                     currentGameId = docRef.id;
                     startGameListener(currentGameId);
                 }
-
             } catch (e) {
-                console.error("Matchmaking error:", e);
+                console.error("Match error:", e);
                 statusTxt.innerText = "Error: " + e.message;
                 btn.disabled = false;
             }
         });
 
         function startGameListener(gameId) {
-            unsubscribeGame = onSnapshot(doc(db, GAMES_COLLECTION, gameId), (docSnap) => {
+            onSnapshot(doc(db, GAMES_COLLECTION, gameId), (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-
-                    if (data.status === 'active') {
-                        // Game Started!
-                        mapSeed = data.seed; // Sync Seed
-                        opponentId = isHost ? data.guestId : data.hostId;
+                    if (data.status === 'active' && gameState === 'MENU') {
+                        if (data.seed) mapSeed = data.seed;
                         
-                        // Start Loop
-                        if (gameState === 'MENU') {
-                            document.getElementById('start-screen').classList.add('hidden');
-                            document.getElementById('status-msg').innerText = "OPPONENT CONNECTED";
-                            document.getElementById('status-msg').classList.remove('hidden');
-                            setTimeout(() => document.getElementById('status-msg').classList.add('hidden'), 3000);
-                            
-                            initGame();
-                            gameState = 'PLAYING';
-                            loop();
-                            
-                            // Start syncing my position
-                            startSync();
-                        }
+                        document.getElementById('start-screen').classList.add('hidden');
+                        document.getElementById('status-msg').innerText = "OPPONENT CONNECTED";
+                        document.getElementById('status-msg').classList.remove('hidden');
+                        setTimeout(() => document.getElementById('status-msg').classList.add('hidden'), 3000);
+                        
+                        initGame();
+                        gameState = 'PLAYING';
+                        startSync();
+                        loop();
                     }
                 }
             });
         }
 
-        // --- Networking ---
         let lastSyncTime = 0;
-        
         function startSync() {
-            // Write to subcollection: games/{gameId}/players/{userId}
             setInterval(async () => {
                 if (gameState !== 'PLAYING' || !player || !currentGameId) return;
-                
-                // Throttle writes slightly (100ms)
                 const now = Date.now();
                 if (now - lastSyncTime < 100) return;
                 lastSyncTime = now;
 
                 const playerData = {
-                    x: Math.round(player.x),
-                    y: Math.round(player.y),
+                    x: Math.round(player.x), y: Math.round(player.y),
                     angle: parseFloat(player.angle.toFixed(2)),
                     hp: Math.round(player.hp),
                     wep: player.getActiveWeapon().type,
-                    vest: player.vestLevel,
-                    pack: player.backpackLevel,
-                    shoot: player.lastShotTime // Used to trigger shots on remote
+                    vest: player.vestLevel, pack: player.backpackLevel,
+                    shoot: player.lastShotTime
                 };
-
                 try {
-                    const playerRef = doc(db, `${GAMES_COLLECTION}/${currentGameId}/players`, currentUser.uid);
-                    await setDoc(playerRef, playerData);
-                } catch(e) {
-                    // Silent fail for write throttle/disconnect
-                }
-
+                    await setDoc(doc(db, `${GAMES_COLLECTION}/${currentGameId}/players`, currentUser.uid), playerData);
+                } catch(e) {}
             }, 100);
 
-            // Listen to Opponent
             onSnapshot(collection(db, `${GAMES_COLLECTION}/${currentGameId}/players`), (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
-                    if (change.type === "added" || change.type === "modified") {
-                        const pid = change.doc.id;
-                        const data = change.doc.data();
-                        
-                        if (pid !== currentUser.uid && opponent) {
-                            // Update Opponent
-                            opponent.targetX = data.x;
-                            opponent.targetY = data.y;
-                            opponent.targetAngle = data.angle;
-                            opponent.hp = data.hp;
-                            opponent.vestLevel = data.vest || 0;
-                            opponent.backpackLevel = data.pack || 0;
-                            
-                            // Check Shooting
-                            if (data.shoot > opponent.lastShotTime) {
-                                opponent.lastShotTime = data.shoot;
-                                opponent.activeWeapon = data.wep;
-                                opponent.triggerShoot(data.wep);
-                            }
+                    const data = change.doc.data();
+                    if (change.doc.id !== currentUser.uid && opponent) {
+                        opponent.targetX = data.x; opponent.targetY = data.y;
+                        opponent.targetAngle = data.angle; opponent.hp = data.hp;
+                        opponent.vestLevel = data.vest || 0; opponent.backpackLevel = data.pack || 0;
+                        if (data.shoot > opponent.lastShotTime) {
+                            opponent.lastShotTime = data.shoot;
+                            opponent.activeWeapon = data.wep;
+                            opponent.triggerShoot(data.wep);
                         }
                     }
                 });
             });
         }
-
-
-        // --- Logic Classes ---
 
         class Entity {
             constructor(x, y, radius) { this.x=x; this.y=y; this.radius=radius; this.dead=false; }
@@ -446,8 +395,6 @@
                 this.isRemote = isRemote;
                 this.hp = 100; this.maxHp = 100;
                 this.speed = 4.5; this.angle = 0;
-                
-                // Local Props
                 this.inventoryState = [null, null, { type: 'fist', ammo: Infinity, mag: Infinity }];
                 this.activeSlot = 2; 
                 this.ammoBag = { '556mm': 0, '762mm': 0, '9mm': 0, '12gauge': 0, '308sub': 0 };
@@ -455,11 +402,9 @@
                 this.vestLevel = 0; this.backpackLevel = 0;
                 this.scopeLevel = 1;
 
-                // Remote Interpolation
                 this.targetX = x; this.targetY = y; this.targetAngle = 0;
-                this.activeWeapon = 'fist'; // For remote rendering
+                this.activeWeapon = 'fist';
 
-                // States
                 this.reloading = false; this.reloadEndTime = 0; this.lastShotTime = 0;
                 this.isHealing = false; this.healStartTime = 0; this.healDuration = 3000;
                 this.inBush = false;
@@ -470,21 +415,16 @@
                 return this.inventoryState[this.activeSlot]; 
             }
             getWeaponStats() { return WEAPONS[this.getActiveWeapon().type] || WEAPONS['fist']; }
-
             getMaxAmmo(type) {
                 let caps = { '556mm': 120, '762mm': 120, '9mm': 180, '12gauge': 30, '308sub': 20 };
                 let mult = 1.0;
-                if (this.backpackLevel === 1) mult = 1.5;
-                if (this.backpackLevel === 2) mult = 2.0;
-                if (this.backpackLevel === 3) mult = 3.0;
+                if (this.backpackLevel === 1) mult = 1.5; if (this.backpackLevel === 2) mult = 2.0; if (this.backpackLevel === 3) mult = 3.0;
                 return Math.floor(caps[type] * mult);
             }
 
-            // --- Remote Logic ---
             triggerShoot(wepType) {
                 const stats = WEAPONS[wepType];
                 const shotCount = stats.count || 1;
-                // Visual only
                 for(let i=0; i<shotCount; i++) {
                     let spread = stats.spread;
                     let angle = this.angle + (Math.random() - 0.5) * spread;
@@ -493,43 +433,30 @@
             }
 
             updateRemote(dt) {
-                // Interpolate
+                if(isNaN(this.targetX) || isNaN(this.targetY)) return;
                 this.x += (this.targetX - this.x) * 0.2;
                 this.y += (this.targetY - this.y) * 0.2;
-                
-                // Angle lerp
                 let da = (this.targetAngle - this.angle);
                 while (da > Math.PI) da -= Math.PI * 2;
                 while (da < -Math.PI) da += Math.PI * 2;
                 this.angle += da * 0.2;
-
-                if (this.hp <= 0 && !this.dead) {
-                    this.dead = true;
-                    endGame(true); // If opponent dead, I win
-                }
+                if (this.hp <= 0 && !this.dead) { this.dead = true; endGame(true); }
             }
-
-            // --- Local Logic ---
 
             switchSlot(idx) {
                 if (idx < 0 || idx > 2) return;
                 if (this.inventoryState[idx] === null) return; 
-                this.cancelAction();
-                this.activeSlot = idx;
-                updateUI();
+                this.cancelAction(); this.activeSlot = idx; updateUI();
             }
 
             startHealing() {
                 if (this.hp >= 100 || this.medkits <= 0 || this.isHealing) return;
-                this.cancelAction();
-                this.isHealing = true;
-                this.healStartTime = Date.now();
+                this.cancelAction(); this.isHealing = true; this.healStartTime = Date.now();
                 document.getElementById('cast-bar-container').style.display = 'block';
             }
 
             cancelAction() {
-                this.reloading = false;
-                this.isHealing = false;
+                this.reloading = false; this.isHealing = false;
                 document.getElementById('cast-bar-container').style.display = 'none';
             }
 
@@ -538,11 +465,8 @@
                 let elapsed = Date.now() - this.healStartTime;
                 let progress = elapsed / this.healDuration;
                 document.getElementById('cast-bar').style.width = (progress * 100) + '%';
-                
                 if (elapsed >= this.healDuration) {
-                    this.hp = Math.min(100, this.hp + 25);
-                    this.medkits--;
-                    this.isHealing = false;
+                    this.hp = Math.min(100, this.hp + 25); this.medkits--; this.isHealing = false;
                     document.getElementById('cast-bar-container').style.display = 'none';
                     particles.push(new TextParticle(this.x, this.y - 30, "+25 HP", "#2ecc71"));
                     updateUI();
@@ -555,53 +479,34 @@
                     if (this.scopeLevel > 1) loot.push(new Loot(this.x, this.y, 'scope' + this.scopeLevel + 'x'));
                     this.scopeLevel = newLevel;
                     particles.push(new TextParticle(this.x, this.y - 40, `${newLevel}x Equipped`, "#3498db"));
-                    updateUI();
-                    return;
+                    updateUI(); return;
                 }
                 if (type.startsWith('vest')) {
                     let lvl = parseInt(type.replace('vest', ''));
-                    if (lvl > this.vestLevel) {
-                        this.vestLevel = lvl;
-                        particles.push(new TextParticle(this.x, this.y - 40, `Lvl ${lvl} Vest`, "#2c3e50"));
-                        updateUI();
-                    }
+                    if (lvl > this.vestLevel) { this.vestLevel = lvl; particles.push(new TextParticle(this.x, this.y - 40, `Lvl ${lvl} Vest`, "#2c3e50")); updateUI(); }
                     return;
                 }
                 if (type.startsWith('pack')) {
                     let lvl = parseInt(type.replace('pack', ''));
-                    if (lvl > this.backpackLevel) {
-                        this.backpackLevel = lvl;
-                        particles.push(new TextParticle(this.x, this.y - 40, `Lvl ${lvl} Bag`, "#3498db"));
-                        updateUI();
-                    }
+                    if (lvl > this.backpackLevel) { this.backpackLevel = lvl; particles.push(new TextParticle(this.x, this.y - 40, `Lvl ${lvl} Bag`, "#3498db")); updateUI(); }
                     return;
                 }
-
                 const stats = WEAPONS[type];
                 if(stats.ammoType !== 'none') {
                     let max = this.getMaxAmmo(stats.ammoType);
                     let current = this.ammoBag[stats.ammoType];
                     this.ammoBag[stats.ammoType] = Math.min(max, current + 60);
                 }
-
                 const newWep = { type: type, mag: stats.capacity };
-
                 if (this.activeSlot === 2) {
-                    if (this.inventoryState[0] === null) {
-                        this.inventoryState[0] = newWep;
-                        this.switchSlot(0);
-                    } else if (this.inventoryState[1] === null) {
-                        this.inventoryState[1] = newWep;
-                        this.switchSlot(1);
-                    } else {
-                        let old = this.inventoryState[0];
-                        loot.push(new Loot(this.x, this.y, old.type));
-                        this.inventoryState[0] = newWep;
-                        this.switchSlot(0);
+                    if (this.inventoryState[0] === null) { this.inventoryState[0] = newWep; this.switchSlot(0); }
+                    else if (this.inventoryState[1] === null) { this.inventoryState[1] = newWep; this.switchSlot(1); }
+                    else {
+                        let old = this.inventoryState[0]; loot.push(new Loot(this.x, this.y, old.type));
+                        this.inventoryState[0] = newWep; this.switchSlot(0);
                     }
                 } else {
-                    let old = this.inventoryState[this.activeSlot];
-                    loot.push(new Loot(this.x, this.y, old.type));
+                    let old = this.inventoryState[this.activeSlot]; loot.push(new Loot(this.x, this.y, old.type));
                     this.inventoryState[this.activeSlot] = newWep;
                 }
                 updateUI();
@@ -609,130 +514,82 @@
 
             update(dt) {
                 if (this.dead) return;
-                
-                if (this.isRemote) {
-                    this.updateRemote(dt);
-                    return;
-                }
+                if (this.isRemote) { this.updateRemote(dt); return; }
 
-                // Check Roof
                 this.isUnderRoof = false;
-                for(let r of roofs) {
-                    if (this.x > r.x && this.x < r.x + r.w && this.y > r.y && this.y < r.y + r.h) {
-                        this.isUnderRoof = true; break;
-                    }
-                }
+                for(let r of roofs) { if (this.x > r.x && this.x < r.x + r.w && this.y > r.y && this.y < r.y + r.h) { this.isUnderRoof = true; break; } }
 
-                if (this.reloading) {
-                    if (Date.now() > this.reloadEndTime) this.finishReload();
-                }
+                if (this.reloading) { if (Date.now() > this.reloadEndTime) this.finishReload(); }
                 this.updateHealing();
 
-                // Input
                 let dx = 0, dy = 0;
-                if (keys['KeyW']) dy -= 1;
-                if (keys['KeyS']) dy += 1;
-                if (keys['KeyA']) dx -= 1;
-                if (keys['KeyD']) dx += 1;
+                if (keys['KeyW']) dy -= 1; if (keys['KeyS']) dy += 1;
+                if (keys['KeyA']) dx -= 1; if (keys['KeyD']) dx += 1;
                 if (dx!==0 || dy!==0) {
                     let len = Math.hypot(dx,dy);
-                    this.x += (dx/len) * this.speed;
-                    this.y += (dy/len) * this.speed;
+                    this.x += (dx/len) * this.speed; this.y += (dy/len) * this.speed;
                     if(this.isHealing) this.cancelAction();
                 }
                 this.angle = Math.atan2(mouse.worldY - this.y, mouse.worldX - this.x);
 
                 const stats = this.getWeaponStats();
-                if (mouse.down && !this.reloading && !this.isHealing) {
-                    if (stats.auto || !this.clicked) this.shoot();
-                }
+                if (mouse.down && !this.reloading && !this.isHealing) { if (stats.auto || !this.clicked) this.shoot(); }
                 if (!mouse.down) this.clicked = false; else this.clicked = true;
 
-                // Collisions (Simple Wall Slide)
-                // A better approach is usually separation axis or splitting X/Y
                 let wallHit = false;
-                for (let wall of walls) {
-                    if (circleRectCollide(this, wall)) { wallHit = true; break; }
-                }
-                if(wallHit) {
-                    // Revert - lazy collision
-                    this.x -= (dx !== 0 ? (dx/Math.hypot(dx,dy))*this.speed : 0);
-                    this.y -= (dy !== 0 ? (dy/Math.hypot(dx,dy))*this.speed : 0);
-                }
+                for (let wall of walls) { if (circleRectCollide(this, wall)) { wallHit = true; break; } }
+                if(wallHit) { this.x -= (dx !== 0 ? (dx/Math.hypot(dx,dy))*this.speed : 0); this.y -= (dy !== 0 ? (dy/Math.hypot(dx,dy))*this.speed : 0); }
 
                 this.x = Math.max(this.radius, Math.min(MAP_SIZE - this.radius, this.x));
                 this.y = Math.max(this.radius, Math.min(MAP_SIZE - this.radius, this.y));
 
-                // Zone
                 let distToCenter = Math.hypot(this.x - zone.x, this.y - zone.y);
                 if (distToCenter > zone.radius) {
-                    if (gameTime > zone.damageTick) {
-                        this.takeDamage(zone.damage);
-                        zone.damageTick = gameTime + 1000;
-                    }
+                    if (gameTime > zone.damageTick) { this.takeDamage(zone.damage); zone.damageTick = gameTime + 1000; }
                 }
             }
 
             shoot() {
-                const wep = this.getActiveWeapon();
-                const stats = WEAPONS[wep.type];
+                const wep = this.getActiveWeapon(); const stats = WEAPONS[wep.type];
                 if (wep.type === 'fist') {
                      const now = Date.now();
-                     if (now - this.lastShotTime >= stats.fireRate) {
-                         this.lastShotTime = now;
-                         // Fists only visual on client
-                     }
+                     if (now - this.lastShotTime >= stats.fireRate) this.lastShotTime = now;
                      return;
                 }
-                if (wep.mag <= 0) {
-                    if (!this.reloading) this.reload();
-                    return;
-                }
+                if (wep.mag <= 0) { if (!this.reloading) this.reload(); return; }
                 const now = Date.now();
                 if (now - this.lastShotTime >= stats.fireRate) {
-                    this.lastShotTime = now;
-                    wep.mag--;
-                    updateUI();
+                    this.lastShotTime = now; wep.mag--; updateUI();
                     if(this.isHealing) this.cancelAction();
                     screenShake = 4;
                     const shotCount = stats.count || 1;
                     for(let i=0; i<shotCount; i++) {
-                        let spread = stats.spread;
-                        let angle = this.angle + (Math.random() - 0.5) * spread;
+                        let spread = stats.spread; let angle = this.angle + (Math.random() - 0.5) * spread;
                         bullets.push(new Bullet(this.x + Math.cos(this.angle)*30, this.y + Math.sin(this.angle)*30, angle, this, stats));
                     }
                 }
             }
 
             reload() {
-                const w = this.getActiveWeapon();
-                const stats = WEAPONS[w.type];
+                const w = this.getActiveWeapon(); const stats = WEAPONS[w.type];
                 if (w.type === 'fist' || this.reloading || this.isHealing) return;
                 if (w.mag === stats.capacity) return;
                 const reserve = this.ammoBag[stats.ammoType];
-                if (reserve <= 0) {
-                    particles.push(new TextParticle(this.x, this.y-40, "No Ammo!", "#e74c3c"));
-                    return;
-                }
-                this.reloading = true;
-                this.reloadEndTime = Date.now() + stats.reloadTime;
+                if (reserve <= 0) { particles.push(new TextParticle(this.x, this.y-40, "No Ammo!", "#e74c3c")); return; }
+                this.reloading = true; this.reloadEndTime = Date.now() + stats.reloadTime;
                 particles.push(new TextParticle(this.x, this.y - 40, "Reloading...", "#fff"));
             }
 
             finishReload() {
                 this.reloading = false;
-                const w = this.getActiveWeapon();
-                const stats = WEAPONS[w.type];
+                const w = this.getActiveWeapon(); const stats = WEAPONS[w.type];
                 const needed = stats.capacity - w.mag;
                 const available = this.ammoBag[stats.ammoType];
                 const amount = Math.min(needed, available);
-                w.mag += amount;
-                this.ammoBag[stats.ammoType] -= amount;
-                updateUI();
+                w.mag += amount; this.ammoBag[stats.ammoType] -= amount; updateUI();
             }
 
             takeDamage(amount) {
-                // Vest Mitigation
                 let reducedAmount = amount;
                 if (this.vestLevel === 1) reducedAmount *= 0.85; 
                 else if (this.vestLevel === 2) reducedAmount *= 0.70; 
@@ -740,82 +597,49 @@
                 
                 this.hp -= reducedAmount;
                 if(this.isHealing) this.cancelAction();
-                
                 particles.push(new TextParticle(this.x, this.y, `-${Math.floor(reducedAmount)}`, "#e74c3c"));
                 for(let i=0; i<3; i++) particles.push(new Particle(this.x, this.y, '#e74c3c'));
-                
                 updateUI();
 
-                if (this.hp <= 0 && !this.dead) {
-                    this.dead = true;
-                    // I am dead
-                    endGame(false);
-                }
+                if (this.hp <= 0 && !this.dead) { this.dead = true; endGame(false); }
             }
 
             draw() {
                 if (this.dead) return;
                 let opacity = this.inBush ? 0.4 : 1.0;
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.globalAlpha = opacity;
-                ctx.rotate(this.angle);
+                ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = opacity; ctx.rotate(this.angle);
 
-                // Backpack
                 let packColor = '#665c3b';
-                if(this.backpackLevel===1) packColor = COLORS.pack1;
-                if(this.backpackLevel===2) packColor = COLORS.pack2;
-                if(this.backpackLevel===3) packColor = COLORS.pack3;
-                ctx.fillStyle = packColor;
-                ctx.fillRect(-20, -15, 12, 30);
+                if(this.backpackLevel===1) packColor = COLORS.pack1; if(this.backpackLevel===2) packColor = COLORS.pack2; if(this.backpackLevel===3) packColor = COLORS.pack3;
+                ctx.fillStyle = packColor; ctx.fillRect(-20, -15, 12, 30);
 
-                // Hands
                 ctx.fillStyle = COLORS.playerHand;
                 let rightOffset = 0;
                 if (Date.now() - this.lastShotTime < 100 && this.getActiveWeapon().type === 'fist') rightOffset = 15;
                 ctx.beginPath(); ctx.arc(20 + rightOffset, 20, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
                 ctx.beginPath(); ctx.arc(20, -20, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
 
-                // Gun
-                if (this.getActiveWeapon().type !== 'fist') {
-                    ctx.fillStyle = '#333';
-                    ctx.fillRect(10, -5, 45, 10);
-                }
+                if (this.getActiveWeapon().type !== 'fist') { ctx.fillStyle = '#333'; ctx.fillRect(10, -5, 45, 10); }
 
-                // Body
                 let bodyColor = this.isRemote ? COLORS.opponentBody : COLORS.playerBody;
-                if(this.vestLevel === 1) bodyColor = COLORS.vest1;
-                if(this.vestLevel === 2) bodyColor = COLORS.vest2;
-                if(this.vestLevel === 3) bodyColor = COLORS.vest3;
+                if(this.vestLevel === 1) bodyColor = COLORS.vest1; if(this.vestLevel === 2) bodyColor = COLORS.vest2; if(this.vestLevel === 3) bodyColor = COLORS.vest3;
                 
-                ctx.fillStyle = bodyColor;
-                ctx.beginPath(); ctx.arc(0,0, this.radius, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0,0, this.radius, 0, Math.PI*2); ctx.fill();
                 ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.stroke();
-                
-                // Helmet (Simple)
-                ctx.fillStyle = 'rgba(0,0,0,0.1)';
-                ctx.beginPath(); ctx.arc(0,0, 15, 0, Math.PI*2); ctx.fill();
-                
+                ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.beginPath(); ctx.arc(0,0, 15, 0, Math.PI*2); ctx.fill();
                 ctx.restore();
             }
         }
 
         class Bullet {
             constructor(x, y, angle, owner, stats) {
-                this.x = x; this.y = y;
-                this.dx = Math.cos(angle) * stats.speed;
-                this.dy = Math.sin(angle) * stats.speed;
-                this.owner = owner;
-                this.damage = stats.damage;
-                this.life = stats.range / stats.speed;
-                this.radius = 4;
-                this.color = stats.color;
+                this.x = x; this.y = y; this.dx = Math.cos(angle) * stats.speed; this.dy = Math.sin(angle) * stats.speed;
+                this.owner = owner; this.damage = stats.damage; this.life = stats.range / stats.speed; this.radius = 4; this.color = stats.color;
             }
             update() { this.x += this.dx; this.y += this.dy; this.life--; }
             draw() {
                 if(this.color==='transparent') return;
-                ctx.fillStyle = this.color;
-                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
             }
         }
 
@@ -825,29 +649,25 @@
                 if (type === 'tree') r = 60; if (type === 'crate') r = 40; if (type === 'bush') r = 70;
                 if (type === 'chest' || type === 'airdrop') r = 50;
                 super(x, y, r);
-                this.type = type;
-                this.hp = 9999;
+                this.type = type; this.hp = 9999;
                 if(type === 'crate') this.hp = 40; if(type === 'stone') this.hp = 80;
                 if(type === 'chest') this.hp = 200; if(type === 'airdrop') this.hp = 100;
             }
             takeDamage(amount) {
                 if (this.type === 'bush' || this.type === 'tree') return; 
-                this.hp -= amount;
-                particles.push(new Particle(this.x, this.y, '#8e44ad'));
+                this.hp -= amount; particles.push(new Particle(this.x, this.y, '#8e44ad'));
                 if (this.hp <= 0 && !this.dead) {
                     this.dead = true;
                     if(this.type === 'crate') spawnLoot(this.x, this.y, true);
                     else if(this.type === 'stone') { if(seededRandom()>0.5) spawnAmmoLoot(this.x, this.y); }
                     else if(this.type === 'chest') {
-                        loot.push(new Loot(this.x, this.y, 'm249'));
-                        loot.push(new Loot(this.x+30, this.y, 'vest3'));
+                        loot.push(new Loot(this.x, this.y, 'm249')); loot.push(new Loot(this.x+30, this.y, 'vest3'));
                     }
                     else if(this.type === 'airdrop') {
                         let rand = seededRandom();
                         if(rand < 0.5) loot.push(new Loot(this.x, this.y, 'awm'));
                         else loot.push(new Loot(this.x, this.y, 'm249'));
-                        loot.push(new Loot(this.x+30, this.y, 'vest3'));
-                        loot.push(new Loot(this.x-30, this.y, 'scope8x'));
+                        loot.push(new Loot(this.x+30, this.y, 'vest3')); loot.push(new Loot(this.x-30, this.y, 'scope8x'));
                     }
                     for(let i=0; i<6; i++) particles.push(new Particle(this.x, this.y, '#6c3483'));
                 }
@@ -927,6 +747,7 @@
         class Roof {
             constructor(x, y, w, h) { this.x=x; this.y=y; this.w=w; this.h=h; this.opacity = 1.0; }
             update() {
+                if (!player) return;
                 if (player.x > this.x && player.x < this.x+this.w && player.y > this.y && player.y < this.y+this.h) {
                     this.opacity = Math.max(0.1, this.opacity - 0.1);
                 } else {
@@ -959,31 +780,6 @@
             draw() { ctx.globalAlpha=this.life; ctx.fillStyle=this.color; ctx.font='bold 20px Arial'; ctx.fillText(this.text,this.x,this.y); ctx.globalAlpha=1; }
         }
 
-
-        // --- Init Functions ---
-
-        function spawnAmmoLoot(x, y) {
-             let types = ['ammo_556mm', 'ammo_762mm', 'ammo_9mm', 'ammo_12gauge'];
-             let r = types[Math.floor(seededRandom() * types.length)];
-             loot.push(new Loot(x, y, r));
-        }
-
-        function spawnLoot(x, y, highTier = false) {
-            let r = seededRandom();
-            let item;
-            if (highTier) {
-                if (r < 0.2) item = 'scope4x'; else if (r < 0.3) item = 'scope8x';
-                else if (r < 0.4) item = 'vest2'; else if (r < 0.5) item = 'pack2';
-                else if (r < 0.7) item = 'ak'; else item = 'medkit';
-            } else {
-                if (r < 0.05) item = 'scope2x'; else if (r < 0.1) item = 'vest1';
-                else if (r < 0.15) item = 'pack1'; else if (r < 0.3) item = 'medkit';
-                else if (r < 0.5) item = 'pistol'; else if (r < 0.65) item = 'smg';
-                else if (r < 0.75) item = 'shotgun'; else { spawnAmmoLoot(x, y); return; }
-            }
-            loot.push(new Loot(x, y, item));
-        }
-
         function createBuilding(x, y, w, h, type) {
             floors.push({x:x, y:y, w:w, h:h, color: type === 'club' ? COLORS.floorClub : COLORS.floorHouse});
             const THICK = 15;
@@ -1001,7 +797,9 @@
         function initGame() {
             bullets = []; obstacles = []; loot = []; particles = []; walls = []; roofs = []; floors = [];
             
-            // Generate Map using Seed
+            // Re-seed manually for consistency if mapSeed is somehow broken
+            if (!mapSeed || isNaN(mapSeed)) mapSeed = 12345;
+
             createBuilding(MAP_SIZE/2 - 400, MAP_SIZE/2 - 300, 800, 600, 'club');
 
             for(let i=0; i<15; i++) {
@@ -1024,12 +822,10 @@
                 }
             }
 
-            // Init Players
             if (isHost) {
                 player = new Player(MAP_SIZE/2 - 400, MAP_SIZE/2);
                 opponent = new Player(MAP_SIZE/2 + 400, MAP_SIZE/2, true);
             } else {
-                // Guest
                 player = new Player(MAP_SIZE/2 + 400, MAP_SIZE/2);
                 opponent = new Player(MAP_SIZE/2 - 400, MAP_SIZE/2, true);
             }
@@ -1047,8 +843,34 @@
             document.getElementById('game-over-screen').classList.remove('hidden');
         }
 
-        function updateUI() {
+        function interact() {
             if (!player) return;
+            let closest = null, minDist = 80;
+            loot.forEach(l => {
+                let d = player.dist(l);
+                if (d < minDist) { closest = l; minDist = d; }
+            });
+
+            if (closest) {
+                if (closest.type === 'medkit') {
+                    player.medkits++; closest.dead = true;
+                    particles.push(new TextParticle(player.x, player.y-20, "+1 Medkit", "#e74c3c"));
+                } else if (closest.type.startsWith('ammo_')) {
+                    let at = closest.type.replace('ammo_', '');
+                    let max = player.getMaxAmmo(at);
+                    let current = player.ammoBag[at];
+                    let added = Math.min(max - current, 30);
+                    player.ammoBag[at] += added;
+                    if(added > 0) { closest.dead = true; particles.push(new TextParticle(player.x, player.y-20, "+Ammo", AMMO_TYPES[at])); }
+                } else {
+                    player.equipWeapon(closest.type); closest.dead = true;
+                }
+                updateUI();
+            }
+        }
+
+        function updateUI() {
+            if (!player || !opponent) return;
             document.getElementById('health-bar').style.width = `${Math.max(0, player.hp)}%`;
 
             for(let i=0; i<3; i++) {
@@ -1074,7 +896,11 @@
             if(player.backpackLevel > 0) bagEl.classList.add(`gear-lvl-${player.backpackLevel}`);
 
             document.getElementById('scope-display').innerText = `${player.scopeLevel}x`;
-            document.getElementById('alive-count').innerText = opponent.dead ? 1 : 2;
+            
+            // Safety check for opponent
+            let oppAlive = !opponent.dead;
+            // If we haven't received opponent data yet, assume alive
+            document.getElementById('kill-feed').innerText = oppAlive ? "Opponent Alive" : "Opponent Dead";
             
             document.getElementById('ammo-556').innerText = player.ammoBag['556mm'];
             document.getElementById('ammo-762').innerText = player.ammoBag['762mm'];
@@ -1084,6 +910,7 @@
         }
 
         function drawMinimap() {
+            if (!player || !opponent) return;
             const mmX = width - MINIMAP_SIZE - 20;
             const mmY = height - MINIMAP_SIZE - 20;
             const scale = MINIMAP_SIZE / MAP_SIZE;
@@ -1112,7 +939,7 @@
                 ctx.fillStyle = '#f1c40f'; ctx.beginPath();
                 ctx.arc(mmX + player.x*scale, mmY + player.y*scale, 3, 0, Math.PI*2); ctx.fill();
             }
-            if(!opponent.dead && opponent.dist(player) < 2000) { // Simple "sonar"
+            if(!opponent.dead && opponent.dist(player) < 2000) { 
                 ctx.fillStyle = '#e74c3c'; ctx.beginPath();
                 ctx.arc(mmX + opponent.x*scale, mmY + opponent.y*scale, 3, 0, Math.PI*2); ctx.fill();
             }
@@ -1121,16 +948,17 @@
 
         function loop() {
             if (gameState !== 'PLAYING') return;
+            if (!player || !opponent) return;
+
             const now = performance.now();
             const dt = (now - lastTime) / 1000;
             lastTime = now;
             gameTime += dt;
 
-            // Zone Logic
+            // Update Logic
             if (zone.phaseIdx < ZONE_PHASES.length - 1) {
                 if (gameTime > ZONE_PHASES[zone.phaseIdx].t) {
-                    zone.phaseIdx++;
-                    zone.damage = ZONE_PHASES[zone.phaseIdx].dmg;
+                    zone.phaseIdx++; zone.damage = ZONE_PHASES[zone.phaseIdx].dmg;
                     const warning = document.getElementById('zone-warning');
                     warning.innerText = `PHASE ${zone.phaseIdx} - DAMAGE INCREASED!`;
                     warning.style.opacity = 1; setTimeout(()=>warning.style.opacity=0, 3000);
@@ -1139,7 +967,6 @@
             let targetR = ZONE_PHASES[zone.phaseIdx].r;
             if (zone.radius > targetR) zone.radius -= 10 * dt;
 
-            // Camera
             let desiredZoom = 1.0;
             if (player.isUnderRoof) desiredZoom = 1.0;
             else {
@@ -1152,7 +979,7 @@
             mouse.worldY = player.y + (mouse.y - height/2) / cameraZoom;
 
             player.update(dt);
-            opponent.update(dt); // Interp remote player
+            opponent.update(dt);
             
             bullets.forEach(b => b.update());
             bullets = bullets.filter(b => b.life > 0);
@@ -1163,7 +990,6 @@
                 if(obs.type === 'bush' && !obs.dead && player.dist(obs) < obs.radius) player.inBush = true;
             });
 
-            // Collisions
             bullets.forEach(b => {
                 for(let w of walls) {
                     if (b.x > w.x && b.x < w.x+w.w && b.y > w.y && b.y < w.y+w.h) {
@@ -1175,29 +1001,17 @@
                     if (obs.dead || obs.type === 'bush') continue;
                     if (Math.hypot(b.x - obs.x, b.y - obs.y) < obs.radius) {
                         b.life = 0;
-                        // Only host processes object damage? For simplicity both do locally.
                         if (['crate','stone','chest','airdrop'].includes(obs.type)) obs.takeDamage(b.damage);
                         particles.push(new Particle(b.x, b.y, '#fff')); break;
                     }
                 }
                 if (b.life <= 0) return;
-
-                // Player Hits
-                let targets = [];
-                // If I shot it, I can hit opponent
-                if (b.owner === player && !opponent.dead) targets.push(opponent);
-                // If Opponent shot it, it can hit me
-                if (b.owner === opponent && !player.dead) targets.push(player);
-
-                targets.forEach(t => {
-                    if (Math.hypot(b.x - t.x, b.y - t.y) < t.radius) {
+                [player, opponent].forEach(ent => {
+                    if (ent.dead || ent === b.owner) return;
+                    if (Math.hypot(b.x - ent.x, b.y - ent.y) < ent.radius) {
                         b.life = 0;
-                        if (!t.isRemote) { // If I got hit
-                            t.takeDamage(b.damage);
-                        } else {
-                            // If I hit opponent, simple visual
-                            particles.push(new Particle(b.x, b.y, '#e74c3c'));
-                        }
+                        if (!ent.isRemote) ent.takeDamage(b.damage);
+                        else particles.push(new Particle(b.x, b.y, '#e74c3c'));
                     }
                 });
             });
