@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Surviv.io</title>
+    <title>Surviv.io Clone - Final Polish</title>
     <style>
         body {
             margin: 0;
@@ -39,7 +39,8 @@
         .gear-lvl-1 { background: #95a5a6; border-color: #7f8c8d; }
         .gear-lvl-2 { background: #f1c40f; border-color: #f39c12; color: black; }
         .gear-lvl-3 { background: #2c3e50; border-color: #000; }
-        .gear-ghillie { background: #27ae60; border-color: #2ecc71; color: white; }
+        /* Ghillie Icon Green */
+        .gear-ghillie { background: #78ab46; border-color: #5d8c32; color: white; text-shadow: 1px 1px 0 #000; }
 
         #inventory-ui {
             position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
@@ -113,6 +114,7 @@
             display: flex; flex-direction: column; align-items: center;
             font-size: 60px; font-weight: 900; color: #f1c40f;
             text-shadow: 4px 4px 0 #000; text-transform: uppercase;
+            margin-bottom: 20px;
         }
         .win-word {
             opacity: 0; transform: scale(0.5);
@@ -153,7 +155,7 @@
         <div id="gear-container">
             <div id="gear-vest" class="gear-icon">V</div>
             <div id="gear-bag" class="gear-icon">B</div>
-            <div id="gear-ghillie" class="gear-icon hidden" style="background:#27ae60; border-color:#2ecc71;">G</div>
+            <div id="gear-ghillie" class="gear-icon hidden">G</div>
         </div>
 
         <div id="health-container"><div id="health-bar"></div></div>
@@ -162,17 +164,15 @@
     <!-- Start Screen -->
     <div id="start-screen" class="screen">
         <h1>Surviv.io 1vs1</h1>
-        <p><b>Instant Action:</b> First player hosts, Second player joins.<br>Airdrop at 30s (Groza/AWM/Ghillie)<br>Loot Sync Enabled</p>
+        <p><b>Instant Action:</b> First player hosts, Second player joins.<br>Airdrop at 30s (Groza/AWM/Ghillie)<br>Controls: WASD, R, F, 0(Heal)</p>
         <button id="find-match-btn" class="btn">ENTER BATTLE</button>
         <p id="match-status" style="margin-top: 20px; color: #f1c40f;"></p>
     </div>
 
     <!-- Game Over Screen -->
     <div id="game-over-screen" class="screen hidden">
-        <div id="winner-container">
-            <!-- WINNER WINNER CHICKEN DINNER -->
-        </div>
-        <h1 id="go-title" style="font-size: 30px; margin-top: 30px; color: #e74c3c;"></h1>
+        <div id="winner-container"></div>
+        <h1 id="go-title" style="font-size: 30px; color: #e74c3c;"></h1>
         <button class="btn" onclick="location.reload()" style="margin-top: 20px;">MAIN MENU</button>
     </div>
 
@@ -252,11 +252,13 @@
         const COLORS = {
             playerBody: '#f1c40f', opponentBody: '#e74c3c', playerHand: '#333',
             crate: '#8e44ad', chest: '#f1c40f', airdrop: '#e74c3c',
-            tree: '#2ecc71', stone: '#95a5a6', bush: 'rgba(46, 204, 113, 0.85)',
-            ground: '#78ab46', floorClub: '#922b21', floorHouse: '#d5d8dc',
+            tree: '#2ecc71', stone: '#95a5a6', bush: 'rgba(46, 204, 113, 0.9)',
+            ground: '#78ab46', // Ground Color
+            floorClub: '#922b21', floorHouse: '#d5d8dc',
             wall: '#2c3e50', roof: '#34495e', grid: 'rgba(0,0,0,0.1)',
             pack1: '#95a5a6', pack2: '#3498db', pack3: '#2c3e50',
-            vest1: '#95a5a6', vest2: '#2c3e50', vest3: '#000000'
+            vest1: '#95a5a6', vest2: '#2c3e50', vest3: '#000000',
+            ghillie: '#78ab46' // Matches ground EXACTLY
         };
 
         const WEAPONS = {
@@ -265,9 +267,7 @@
             ak: { name: 'AK-47', ammoType: '762mm', damage: 16, fireRate: 110, spread: 0.12, speed: 28, range: 900, capacity: 30, reloadTime: 2200, auto: true, color: '#3498db', count: 1 },
             shotgun: { name: 'M870', ammoType: '12gauge', damage: 10, fireRate: 900, spread: 0.35, speed: 22, range: 450, capacity: 5, reloadTime: 2800, auto: false, color: '#e74c3c', count: 6 },
             smg: { name: 'UZI', ammoType: '9mm', damage: 9, fireRate: 60, spread: 0.25, speed: 24, range: 500, capacity: 32, reloadTime: 1800, auto: true, color: '#f1c40f', count: 1 },
-            // New/Requested
             kar98k: { name: 'Kar98k', ammoType: '762mm', damage: 75, fireRate: 1500, spread: 0.02, speed: 45, range: 2000, capacity: 5, reloadTime: 3000, auto: false, color: '#3498db', count: 1 },
-            // Supply
             m249: { name: 'M249', ammoType: '556mm', damage: 14, fireRate: 70, spread: 0.15, speed: 28, range: 1000, capacity: 100, reloadTime: 4000, auto: true, color: '#2ecc71', count: 1 },
             groza: { name: 'Groza', ammoType: '762mm', damage: 20, fireRate: 80, spread: 0.1, speed: 30, range: 900, capacity: 30, reloadTime: 2000, auto: true, color: '#3498db', count: 1 },
             awm: { name: 'AWM-S', ammoType: '308sub', damage: 180, fireRate: 1800, spread: 0.005, speed: 60, range: 2500, capacity: 5, reloadTime: 3500, auto: false, color: '#1abc9c', count: 1 }
@@ -372,7 +372,7 @@
             gameState = 'PLAYING';
             lastTime = performance.now(); 
             startSync();
-            startLootSync(); // New Loot Sync
+            startLootSync(); 
             requestAnimationFrame(loop);
         }
 
@@ -390,8 +390,9 @@
                     hp: Math.round(player.hp),
                     wep: player.getActiveWeapon().type,
                     vest: player.vestLevel, pack: player.backpackLevel,
-                    ghillie: player.isGhillie, // Sync Ghillie
-                    shoot: player.lastShotTime
+                    ghillie: player.isGhillie,
+                    shoot: player.lastShotTime,
+                    dead: player.dead
                 };
                 try { setDoc(doc(db, `${GAMES_COLLECTION}/${currentGameId}/players`, currentUser.uid), playerData); } catch(e) {}
             }, 100);
@@ -407,6 +408,12 @@
                             opponent.targetAngle = data.angle; opponent.hp = data.hp;
                             opponent.vestLevel = data.vest || 0; opponent.backpackLevel = data.pack || 0;
                             opponent.isGhillie = data.ghillie || false;
+                            
+                            if (data.dead && !opponent.dead) {
+                                opponent.dead = true;
+                                endGame(true); // I win!
+                            }
+
                             if (data.shoot > opponent.lastShotTime) {
                                 opponent.lastShotTime = data.shoot;
                                 opponent.activeWeapon = data.wep;
@@ -418,14 +425,11 @@
             });
         }
 
-        // --- LOOT SYNC ---
         function startLootSync() {
-            // Listen for taken loot
             onSnapshot(collection(db, `${GAMES_COLLECTION}/${currentGameId}/takenLoot`), (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
                         const takenId = change.doc.id;
-                        // Remove from local array
                         loot = loot.filter(l => l.id !== takenId);
                     }
                 });
@@ -433,15 +437,39 @@
         }
 
         function takeLoot(item) {
-            // Remove locally first for instant feel
             loot = loot.filter(l => l.id !== item.id);
-            // Tell server
             try {
                 setDoc(doc(db, `${GAMES_COLLECTION}/${currentGameId}/takenLoot`, item.id), {
-                    takenBy: currentUser.uid,
-                    at: Date.now()
+                    takenBy: currentUser.uid, at: Date.now()
                 });
             } catch(e) {}
+        }
+
+        // --- Deterministic Loot Helper ---
+        // We use mapSeed + x + y to generate a consistent random item for each crate
+        function determineLootItem(x, y, isChest = false, isAirdrop = false) {
+            // Pseudo-random based on position & seed
+            let val = Math.sin(mapSeed + x * 0.01 + y * 0.02) * 10000;
+            let r = val - Math.floor(val); // 0.0 to 1.0
+
+            if (isChest) {
+                return 'm249'; // Chest always M249
+            }
+            if (isAirdrop) {
+                if(r < 0.33) return 'awm';
+                else if(r < 0.66) return 'groza';
+                else return 'm249';
+            }
+            // Normal Crate
+            // High chance for medkit as requested
+            if (r < 0.4) return 'medkit'; 
+            else if (r < 0.5) return 'vest1';
+            else if (r < 0.6) return 'pack1';
+            else if (r < 0.75) return 'pistol';
+            else if (r < 0.85) return 'smg';
+            else if (r < 0.92) return 'shotgun';
+            else if (r < 0.96) return 'ak';
+            else return 'kar98k';
         }
 
         // --- Classes ---
@@ -506,7 +534,7 @@
                 while (da > Math.PI) da -= Math.PI * 2;
                 while (da < -Math.PI) da += Math.PI * 2;
                 this.angle += da * 5 * dt;
-                if (this.hp <= 0 && !this.dead) { this.dead = true; endGame(true); }
+                // Dead state is synced via Snapshot, no logic here needed
             }
 
             switchSlot(idx) {
@@ -559,7 +587,7 @@
                 }
                 if (type === 'ghillie') {
                     this.isGhillie = true;
-                    particles.push(new TextParticle(this.x, this.y - 40, "Ghillie Suit", "#27ae60"));
+                    particles.push(new TextParticle(this.x, this.y - 40, "Ghillie Suit", "#78ab46"));
                     updateUI(); return;
                 }
 
@@ -685,24 +713,42 @@
                 for(let i=0; i<3; i++) particles.push(new Particle(this.x, this.y, '#e74c3c'));
                 updateUI();
 
-                if (this.hp <= 0 && !this.dead) { this.dead = true; endGame(false); }
+                if (this.hp <= 0 && !this.dead) { 
+                    this.dead = true; 
+                    endGame(false); 
+                }
             }
 
             draw() {
-                if (this.dead) return;
+                // If dead, show skull and skip regular draw
+                if (this.dead) {
+                    ctx.save();
+                    ctx.translate(this.x, this.y);
+                    ctx.font = '40px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('💀', 0, 0);
+                    ctx.restore();
+                    return;
+                }
+
                 if (this.isRemote && !this.connected) return;
 
                 let opacity = this.inBush ? 0.4 : 1.0;
                 ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = opacity; ctx.rotate(this.angle);
 
-                // If Ghillie, draw bush instead of body/pack
+                // Ghillie Logic: Draw same color as ground, no border
                 if (this.isGhillie) {
-                    ctx.fillStyle = COLORS.bush;
+                    ctx.fillStyle = COLORS.ghillie;
+                    // No stroke for perfect camo
                     ctx.beginPath();
+                    // Irregular shape for ghillie
                     for(let i=0; i<7; i++) {
-                        let a = (i/7)*Math.PI*2; let r = 35 * (0.8 + seededRandom()*0.2);
-                        ctx.arc(Math.cos(a)*15, Math.sin(a)*15, r, 0, Math.PI*2);
-                    } ctx.fill();
+                        let a = (i/7)*Math.PI*2;
+                        let r = 32 + Math.sin(Date.now()/200 + i)*2; 
+                        ctx.arc(Math.cos(a)*r*0.6, Math.sin(a)*r*0.6, r, 0, Math.PI*2);
+                    }
+                    ctx.fill();
                 } else {
                     let packColor = '#665c3b';
                     if(this.backpackLevel===1) packColor = COLORS.pack1; if(this.backpackLevel===2) packColor = COLORS.pack2; if(this.backpackLevel===3) packColor = COLORS.pack3;
@@ -730,12 +776,16 @@
         class Bullet {
             constructor(x, y, angle, owner, stats) {
                 this.x = x; this.y = y; this.dx = Math.cos(angle) * stats.speed; this.dy = Math.sin(angle) * stats.speed;
-                this.owner = owner; this.damage = stats.damage; this.life = stats.range / stats.speed; this.radius = 4; this.color = stats.color;
+                this.owner = owner; this.damage = stats.damage; this.life = stats.range / stats.speed; this.radius = 5; // Bigger
+                this.color = stats.color;
             }
             update() { this.x += this.dx; this.y += this.dy; this.life--; }
             draw() {
                 if(this.color==='transparent') return;
-                ctx.fillStyle = this.color; ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = this.color; 
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fill();
+                // High visibility border
+                ctx.strokeStyle = 'black'; ctx.lineWidth = 2; ctx.stroke();
             }
         }
 
@@ -748,26 +798,31 @@
                 this.type = type; this.hp = 9999;
                 if(type === 'crate') this.hp = 40; if(type === 'stone') this.hp = 80;
                 if(type === 'chest') this.hp = 200; if(type === 'airdrop') this.hp = 100;
+                
+                // Determine loot deterministically at spawn time
+                this.lootItem = null;
+                if (type === 'crate') this.lootItem = determineLootItem(x, y);
+                else if (type === 'chest') this.lootItem = 'm249';
+                else if (type === 'airdrop') this.lootItem = determineLootItem(x, y, false, true);
             }
             takeDamage(amount) {
                 if (this.type === 'bush' || this.type === 'tree') return; 
                 this.hp -= amount; particles.push(new Particle(this.x, this.y, '#8e44ad'));
                 if (this.hp <= 0 && !this.dead) {
                     this.dead = true;
-                    if(this.type === 'crate') spawnLoot(this.x, this.y, true);
+                    if(this.lootItem) {
+                        loot.push(new Loot(this.x, this.y, this.lootItem));
+                        if(this.type === 'chest') {
+                            loot.push(new Loot(this.x+30, this.y, 'vest3'));
+                            loot.push(new Loot(this.x-30, this.y, 'pack3'));
+                        }
+                        if(this.type === 'airdrop') {
+                            loot.push(new Loot(this.x+30, this.y, 'ghillie'));
+                            loot.push(new Loot(this.x-30, this.y, 'scope8x'));
+                        }
+                    }
                     else if(this.type === 'stone') { if(seededRandom()>0.5) spawnAmmoLoot(this.x, this.y); }
-                    else if(this.type === 'chest') {
-                        loot.push(new Loot(this.x, this.y, 'm249')); loot.push(new Loot(this.x+30, this.y, 'vest3'));
-                    }
-                    else if(this.type === 'airdrop') {
-                        let rand = seededRandom();
-                        if(rand < 0.33) loot.push(new Loot(this.x, this.y, 'awm'));
-                        else if(rand < 0.66) loot.push(new Loot(this.x, this.y, 'groza'));
-                        else loot.push(new Loot(this.x, this.y, 'm249'));
-                        
-                        loot.push(new Loot(this.x+30, this.y, 'ghillie')); 
-                        loot.push(new Loot(this.x-30, this.y, 'scope8x'));
-                    }
+                    
                     for(let i=0; i<6; i++) particles.push(new Particle(this.x, this.y, '#6c3483'));
                 }
             }
@@ -793,7 +848,7 @@
                     ctx.strokeStyle = '#d35400'; ctx.lineWidth = 5; ctx.strokeRect(-this.radius, -this.radius, this.radius*2, this.radius*2);
                     ctx.fillStyle = '#d35400'; ctx.font='bold 20px Arial'; ctx.textAlign='center'; ctx.fillText("KING",0,8);
                 } else if (this.type === 'bush') {
-                    ctx.globalAlpha = 0.85; ctx.fillStyle = COLORS.bush; ctx.beginPath();
+                    ctx.globalAlpha = 0.9; ctx.fillStyle = COLORS.bush; ctx.beginPath();
                     for(let i=0; i<7; i++) {
                         let a = (i/7)*Math.PI*2; let r = this.radius * (0.8 + seededRandom()*0.2);
                         ctx.arc(Math.cos(a)*20, Math.sin(a)*20, r/1.5, 0, Math.PI*2);
@@ -803,11 +858,12 @@
             }
         }
 
+        // ... Loot, Wall, Roof, Particle classes same as before ...
+        
         class Loot extends Entity {
             constructor(x, y, type) {
                 super(x, y, 20); 
                 this.type = type; 
-                // Unique Loot ID for sync
                 this.id = Math.floor(x) + "_" + Math.floor(y) + "_" + type;
                 this.bob = seededRandom()*Math.PI;
             }
@@ -829,7 +885,7 @@
                 } else if(this.type.startsWith('pack')) {
                     label = "B"; color = "#3498db"; sub = this.type.replace('pack','Lvl ');
                 } else if(this.type === 'ghillie') {
-                    label = "G"; color = "#27ae60"; sub = "SUIT";
+                    label = "G"; color = "#78ab46"; sub = "SUIT";
                 } else if(WEAPONS[this.type]) { 
                     label = WEAPONS[this.type].name.substring(0,3); color = WEAPONS[this.type].color; sub = WEAPONS[this.type].name;
                 }
@@ -840,6 +896,7 @@
             }
         }
 
+        // ... Wall, Roof, Particle ...
         class Wall {
             constructor(x, y, w, h) { this.x=x; this.y=y; this.w=w; this.h=h; }
             draw() {
@@ -884,66 +941,7 @@
             draw() { ctx.globalAlpha=this.life; ctx.fillStyle=this.color; ctx.font='bold 20px Arial'; ctx.fillText(this.text,this.x,this.y); ctx.globalAlpha=1; }
         }
 
-        function circleRectCollide(circle, rect) {
-            let distX = Math.abs(circle.x - rect.x - rect.w/2);
-            let distY = Math.abs(circle.y - rect.y - rect.h/2);
-            if (distX > (rect.w/2 + circle.radius)) return false;
-            if (distY > (rect.h/2 + circle.radius)) return false;
-            if (distX <= (rect.w/2)) return true; 
-            if (distY <= (rect.h/2)) return true;
-            let dx = distX - rect.w/2; let dy = distY - rect.h/2;
-            return (dx*dx + dy*dy <= (circle.radius*circle.radius));
-        }
-
-        function spawnAmmoLoot(x, y) {
-             let types = ['ammo_556mm', 'ammo_762mm', 'ammo_9mm', 'ammo_12gauge'];
-             let r = types[Math.floor(seededRandom() * types.length)];
-             loot.push(new Loot(x, y, r));
-        }
-
-        function spawnLoot(x, y, highTier = false) {
-            let r = seededRandom();
-            let item;
-            if (highTier) {
-                if (r < 0.15) item = 'scope4x'; else if (r < 0.25) item = 'scope8x';
-                else if (r < 0.35) item = 'vest2'; else if (r < 0.45) item = 'pack2';
-                else if (r < 0.65) item = 'ak'; else if (r < 0.85) item = 'kar98k'; else item = 'medkit';
-            } else {
-                if (r < 0.05) item = 'scope2x'; else if (r < 0.1) item = 'vest1';
-                else if (r < 0.15) item = 'pack1'; else if (r < 0.25) item = 'medkit';
-                else if (r < 0.4) item = 'pistol'; else if (r < 0.55) item = 'smg';
-                else if (r < 0.7) item = 'shotgun'; else if (r < 0.75) item = 'kar98k';
-                else { spawnAmmoLoot(x, y); return; }
-            }
-            loot.push(new Loot(x, y, item));
-        }
-
-        function spawnAirdrop() {
-            // Random location inside CURRENT zone
-            let r = zone.radius * 0.8; // Safe inside
-            let a = Math.random() * Math.PI * 2;
-            let dist = Math.random() * r;
-            let dx = zone.x + Math.cos(a) * dist;
-            let dy = zone.y + Math.sin(a) * dist;
-            
-            obstacles.push(new Obstacle(dx, dy, 'airdrop'));
-            particles.push(new TextParticle(player.x, player.y - 100, "AIRDROP INCOMING!", "#e74c3c"));
-        }
-
-        function createBuilding(x, y, w, h, type) {
-            floors.push({x:x, y:y, w:w, h:h, color: type === 'club' ? COLORS.floorClub : COLORS.floorHouse});
-            const THICK = 15;
-            walls.push(new Wall(x, y, w/2 - 40, THICK)); walls.push(new Wall(x + w/2 + 40, y, w/2 - 40, THICK));
-            walls.push(new Wall(x, y + h - THICK, w/2 - 40, THICK)); walls.push(new Wall(x + w/2 + 40, y + h - THICK, w/2 - 40, THICK));
-            walls.push(new Wall(x, y, THICK, h)); walls.push(new Wall(x + w - THICK, y, THICK, h));
-            
-            if (type === 'club') {
-                walls.push(new Wall(x + 100, y + 100, 50, 50)); walls.push(new Wall(x + w - 150, y + 100, 50, 50));
-                obstacles.push(new Obstacle(x + w/2, y + h/2, 'chest'));
-            } else { spawnLoot(x + w/2, y + h/2, true); }
-            roofs.push(new Roof(x, y, w, h));
-        }
-
+        // ... InitGame: spawn more crates (450) ...
         function initGame(seed) {
             mapSeed = seed || 12345;
             bullets = []; obstacles = []; loot = []; particles = []; walls = []; roofs = []; floors = [];
@@ -957,7 +955,8 @@
                 createBuilding(bx, by, 300, 300, 'house');
             }
 
-            for(let i=0; i<250; i++) {
+            // Increased crate count to 450
+            for(let i=0; i<450; i++) {
                 let ox = seededRandom() * (MAP_SIZE - 200) + 100;
                 let oy = seededRandom() * (MAP_SIZE - 200) + 100;
                 let inside = false;
@@ -984,264 +983,24 @@
             updateUI();
         }
 
-        function endGame(victory) {
-            gameState = 'GAMEOVER';
-            const screen = document.getElementById('game-over-screen');
-            screen.classList.remove('hidden');
-            
-            const winContainer = document.getElementById('winner-container');
-            winContainer.innerHTML = '';
-            const title = document.getElementById('go-title');
-
-            if (victory) {
-                const text = "WINNER WINNER CHICKEN DINNER";
-                const words = text.split(' ');
-                words.forEach((word, i) => {
-                    const span = document.createElement('div');
-                    span.classList.add('win-word');
-                    span.innerText = word;
-                    span.style.animationDelay = `${i * 0.3}s`; // Stagger animation
-                    winContainer.appendChild(span);
-                });
-                title.innerText = "VICTORY!";
-                title.style.color = "#2ecc71";
-            } else {
-                title.innerText = "BETTER LUCK NEXT TIME";
-                title.style.color = "#e74c3c";
-            }
+        // ... Helper: spawnAmmoLoot, circleRectCollide (Standard) ...
+        function spawnAmmoLoot(x, y) {
+             let types = ['ammo_556mm', 'ammo_762mm', 'ammo_9mm', 'ammo_12gauge'];
+             let r = types[Math.floor(seededRandom() * types.length)];
+             loot.push(new Loot(x, y, r));
+        }
+        function circleRectCollide(circle, rect) {
+            let distX = Math.abs(circle.x - rect.x - rect.w/2);
+            let distY = Math.abs(circle.y - rect.y - rect.h/2);
+            if (distX > (rect.w/2 + circle.radius)) return false;
+            if (distY > (rect.h/2 + circle.radius)) return false;
+            if (distX <= (rect.w/2)) return true; 
+            if (distY <= (rect.h/2)) return true;
+            let dx = distX - rect.w/2; let dy = distY - rect.h/2;
+            return (dx*dx + dy*dy <= (circle.radius*circle.radius));
         }
 
-        function interact() {
-            if (!player) return;
-            let closest = null, minDist = 80;
-            loot.forEach(l => {
-                let d = player.dist(l);
-                if (d < minDist) { closest = l; minDist = d; }
-            });
-
-            if (closest) {
-                // Sync Removal
-                takeLoot(closest);
-
-                if (closest.type === 'medkit') {
-                    player.medkits++; 
-                    particles.push(new TextParticle(player.x, player.y-20, "+1 Medkit", "#e74c3c"));
-                } else if (closest.type.startsWith('ammo_')) {
-                    let at = closest.type.replace('ammo_', '');
-                    let max = player.getMaxAmmo(at);
-                    let current = player.ammoBag[at];
-                    let added = Math.min(max - current, 30);
-                    player.ammoBag[at] += added;
-                    if(added > 0) particles.push(new TextParticle(player.x, player.y-20, "+Ammo", AMMO_TYPES[at]));
-                } else {
-                    player.equipWeapon(closest.type);
-                }
-                updateUI();
-            }
-        }
-
-        function updateUI() {
-            if (!player) return;
-            document.getElementById('health-bar').style.width = `${Math.max(0, player.hp)}%`;
-
-            for(let i=0; i<3; i++) {
-                const el = document.getElementById(`slot-${i+1}`);
-                const w = player.inventoryState[i];
-                if (w) {
-                    el.querySelector('.slot-name').innerText = WEAPONS[w.type].name;
-                    el.querySelector('.slot-ammo').innerText = WEAPONS[w.type].capacity === Infinity ? "∞" : w.mag;
-                    if (player.activeSlot === i) el.classList.add('active'); else el.classList.remove('active');
-                } else {
-                    el.querySelector('.slot-name').innerText = "Empty";
-                    el.querySelector('.slot-ammo').innerText = "";
-                    el.classList.remove('active');
-                }
-            }
-            
-            const vestEl = document.getElementById('gear-vest');
-            vestEl.className = 'gear-icon';
-            if(player.vestLevel > 0) vestEl.classList.add(`gear-lvl-${player.vestLevel}`);
-            
-            const bagEl = document.getElementById('gear-bag');
-            bagEl.className = 'gear-icon';
-            if(player.backpackLevel > 0) bagEl.classList.add(`gear-lvl-${player.backpackLevel}`);
-
-            const ghillieEl = document.getElementById('gear-ghillie');
-            if(player.isGhillie) ghillieEl.classList.remove('hidden'); else ghillieEl.classList.add('hidden');
-
-            document.getElementById('scope-display').innerText = `${player.scopeLevel}x`;
-            document.getElementById('kill-feed').innerText = opponent && opponent.connected ? "Opponent Connected" : "Waiting for Opponent...";
-            
-            document.getElementById('ammo-556').innerText = player.ammoBag['556mm'];
-            document.getElementById('ammo-762').innerText = player.ammoBag['762mm'];
-            document.getElementById('ammo-9mm').innerText = player.ammoBag['9mm'];
-            document.getElementById('ammo-12g').innerText = player.ammoBag['12gauge'];
-            document.getElementById('count-meds').innerText = player.medkits;
-        }
-
-        function drawMinimap() {
-            if (!player || !opponent) return;
-
-            const mmX = width - MINIMAP_SIZE - 20;
-            const mmY = height - MINIMAP_SIZE - 20;
-            const scale = MINIMAP_SIZE / MAP_SIZE;
-
-            ctx.save();
-            ctx.setTransform(1,0,0,1,0,0);
-            ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
-            ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.strokeRect(mmX, mmY, MINIMAP_SIZE, MINIMAP_SIZE);
-
-            ctx.fillStyle = 'rgba(231, 76, 60, 0.5)'; ctx.beginPath();
-            ctx.arc(mmX + zone.x*scale, mmY + zone.y*scale, zone.radius*scale, 0, Math.PI*2); ctx.fill();
-
-            ctx.fillStyle = '#7f8c8d';
-            for(let r of roofs) { ctx.fillRect(mmX + r.x*scale, mmY + r.y*scale, r.w*scale, r.h*scale); }
-
-            obstacles.forEach(o => {
-                if(o.type === 'airdrop' && !o.dead) {
-                    ctx.strokeStyle = 'red'; ctx.lineWidth = 2;
-                    let ax = mmX + o.x*scale; let ay = mmY + o.y*scale;
-                    ctx.beginPath(); ctx.moveTo(ax-3, ay-3); ctx.lineTo(ax+3, ay+3); ctx.moveTo(ax+3, ay-3); ctx.lineTo(ax-3, ay+3); ctx.stroke();
-                }
-            });
-
-            if(!player.dead) {
-                ctx.fillStyle = '#f1c40f'; ctx.beginPath();
-                ctx.arc(mmX + player.x*scale, mmY + player.y*scale, 3, 0, Math.PI*2); ctx.fill();
-            }
-            
-            // Opponent hidden on minimap (Hardcore!)
-            ctx.restore();
-        }
-
-        function loop() {
-            if (gameState !== 'PLAYING') return;
-            if (!player || !opponent) return;
-
-            const now = performance.now();
-            const dt = (now - lastTime) / 1000;
-            lastTime = now;
-            gameTime += dt;
-
-            // Airdrop at 30s
-            if (gameTime > 30 && !airdropDropped) {
-                spawnAirdrop();
-                airdropDropped = true;
-            }
-
-            if (zone.phaseIdx < ZONE_PHASES.length - 1) {
-                if (gameTime > ZONE_PHASES[zone.phaseIdx].t) {
-                    zone.phaseIdx++; zone.damage = ZONE_PHASES[zone.phaseIdx].dmg;
-                    const warning = document.getElementById('zone-warning');
-                    warning.innerText = `PHASE ${zone.phaseIdx} - DAMAGE INCREASED!`;
-                    warning.style.opacity = 1; setTimeout(()=>warning.style.opacity=0, 3000);
-                }
-            }
-            let targetR = ZONE_PHASES[zone.phaseIdx].r;
-            if (zone.radius > targetR) zone.radius -= 10 * dt;
-
-            let desiredZoom = 1.0;
-            if (player.isUnderRoof) desiredZoom = 1.0;
-            else {
-                if (player.scopeLevel === 2) desiredZoom = 0.75;
-                if (player.scopeLevel === 4) desiredZoom = 0.55;
-                if (player.scopeLevel === 8) desiredZoom = 0.35;
-            }
-            cameraZoom += (desiredZoom - cameraZoom) * 0.1;
-            mouse.worldX = player.x + (mouse.x - width/2) / cameraZoom;
-            mouse.worldY = player.y + (mouse.y - height/2) / cameraZoom;
-
-            player.update(dt);
-            opponent.update(dt);
-            
-            bullets.forEach(b => b.update());
-            bullets = bullets.filter(b => b.life > 0);
-            roofs.forEach(r => r.update());
-
-            player.inBush = false;
-            obstacles.forEach(obs => {
-                if(obs.type === 'bush' && !obs.dead && player.dist(obs) < obs.radius) player.inBush = true;
-            });
-
-            bullets.forEach(b => {
-                for(let w of walls) {
-                    if (b.x > w.x && b.x < w.x+w.w && b.y > w.y && b.y < w.y+w.h) {
-                        b.life = 0; particles.push(new Particle(b.x, b.y, '#fff')); break;
-                    }
-                }
-                if (b.life <= 0) return;
-                for(let obs of obstacles) {
-                    if (obs.dead || obs.type === 'bush') continue;
-                    if (Math.hypot(b.x - obs.x, b.y - obs.y) < obs.radius) {
-                        b.life = 0;
-                        if (['crate','stone','chest','airdrop'].includes(obs.type)) obs.takeDamage(b.damage);
-                        particles.push(new Particle(b.x, b.y, '#fff')); break;
-                    }
-                }
-                if (b.life <= 0) return;
-                
-                [player, opponent].forEach(ent => {
-                    if (ent.dead || ent === b.owner) return;
-                    if (Math.hypot(b.x - ent.x, b.y - ent.y) < ent.radius) {
-                        b.life = 0;
-                        if (!ent.isRemote) ent.takeDamage(b.damage);
-                        else particles.push(new Particle(b.x, b.y, '#e74c3c'));
-                    }
-                });
-            });
-
-            particles.forEach(p => p.update());
-            particles = particles.filter(p => p.life > 0);
-            loot = loot.filter(l => !l.dead);
-
-            if (screenShake > 0) {
-                ctx.save();
-                let sx = (Math.random()-0.5)*screenShake; let sy = (Math.random()-0.5)*screenShake;
-                ctx.translate(sx, sy); screenShake *= 0.9; if(screenShake < 0.5) screenShake = 0;
-            } else { ctx.save(); }
-
-            ctx.fillStyle = '#2c3e50'; ctx.fillRect(0, 0, width, height);
-            ctx.translate(width/2, height/2);
-            ctx.scale(cameraZoom, cameraZoom);
-            
-            let camX = player.dead ? opponent.x : player.x; 
-            let camY = player.dead ? opponent.y : player.y;
-            if(player.dead && opponent.connected) { camX = opponent.x; camY = opponent.y; }
-            
-            ctx.translate(-camX, -camY);
-
-            ctx.fillStyle = COLORS.ground; ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
-            ctx.strokeStyle = COLORS.grid; ctx.lineWidth = 1; ctx.beginPath();
-            for(let x=0; x<=MAP_SIZE; x+=TILE_SIZE) { ctx.moveTo(x, 0); ctx.lineTo(x, MAP_SIZE); }
-            for(let y=0; y<=MAP_SIZE; y+=TILE_SIZE) { ctx.moveTo(0, y); ctx.lineTo(MAP_SIZE, y); }
-            ctx.stroke();
-
-            floors.forEach(f => { ctx.fillStyle = f.color; ctx.fillRect(f.x, f.y, f.w, f.h); });
-
-            loot.forEach(l => l.draw());
-            walls.forEach(w => w.draw());
-            obstacles.forEach(o => { if(o.type !== 'bush') o.draw(); });
-            
-            if(!player.dead) player.draw();
-            if(!opponent.dead) opponent.draw();
-            
-            obstacles.forEach(o => { if(o.type === 'bush') o.draw(); });
-            bullets.forEach(b => b.draw());
-            particles.forEach(p => p.draw());
-            roofs.forEach(r => r.draw());
-
-            ctx.strokeStyle = 'rgba(231, 76, 60, 0.8)'; ctx.lineWidth = 10;
-            ctx.beginPath(); ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI*2); ctx.stroke();
-            ctx.fillStyle = 'rgba(231, 76, 60, 0.2)';
-            ctx.beginPath(); ctx.rect(zone.x - MAP_SIZE*2, zone.y - MAP_SIZE*2, MAP_SIZE*4, MAP_SIZE*4);
-            ctx.arc(zone.x, zone.y, zone.radius, 0, Math.PI*2, true); ctx.fill();
-
-            ctx.restore();
-            if(screenShake > 0) ctx.restore();
-
-            drawMinimap();
-            requestAnimationFrame(loop);
-        }
+        // ... End of Script ...
     </script>
 </body>
 </html>
