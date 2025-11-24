@@ -69,10 +69,11 @@
         }
         .ammo-row { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 2px;}
 
-        #status-msg {
-            position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
-            color: white; font-size: 20px; font-weight: bold;
-            text-shadow: 2px 2px 0 #000; background: rgba(0,0,0,0.5); padding: 10px 20px; border-radius: 20px;
+        #game-message {
+            position: absolute; top: 100px; left: 50%; transform: translateX(-50%);
+            color: white; font-size: 24px; font-weight: bold;
+            text-shadow: 2px 2px 0 #000; background: rgba(0,0,0,0.6); padding: 10px 30px; border-radius: 25px;
+            opacity: 0; transition: opacity 0.5s; pointer-events: none;
         }
 
         #cast-bar-container {
@@ -112,7 +113,7 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
-        <div id="status-msg" class="hidden">WAITING FOR OPPONENT...</div>
+        <div id="game-message">WAITING FOR PLAYER 2...</div>
         <div id="kill-feed"></div>
         <div id="zone-warning">THE ZONE IS SHRINKING!</div>
         <div id="scope-display">1x</div>
@@ -144,8 +145,8 @@
     <!-- Start Screen -->
     <div id="start-screen" class="screen">
         <h1>Surviv.io 1vs1</h1>
-        <p>Real-time Multiplayer PvP<br>Find Match & Destroy Opponent</p>
-        <button id="find-match-btn" class="btn">FIND MATCH</button>
+        <p><b>Instant Action:</b> First player hosts, Second player joins.<br>Controls: WASD to Move, R to Reload, F to Loot, 0 to Heal</p>
+        <button id="find-match-btn" class="btn">ENTER BATTLE</button>
         <p id="match-status" style="margin-top: 20px; color: #f1c40f;"></p>
     </div>
 
@@ -179,8 +180,8 @@
         let currentUser = null;
         let currentGameId = null;
         let isHost = false;
-        
         let mapSeed = 12345;
+
         function seededRandom() {
             let x = Math.sin(mapSeed++) * 10000;
             return x - Math.floor(x);
@@ -198,11 +199,12 @@
         window.addEventListener('resize', resize);
         resize();
 
+        // Game Globals
         let gameState = 'MENU';
         let lastTime = 0;
         let gameTime = 0;
         let cameraZoom = 1.0;
-        const MAP_SIZE = 3000; 
+        const MAP_SIZE = 5000; 
         const TILE_SIZE = 100;
         const MINIMAP_SIZE = 140;
 
@@ -249,19 +251,21 @@
 
         const AMMO_TYPES = { '556mm': '#2ecc71', '762mm': '#3498db', '9mm': '#f1c40f', '12gauge': '#e74c3c', '308sub': '#1abc9c', 'none': 'transparent' };
 
+        // --- Inputs ---
         const keys = {};
         const mouse = { x: 0, y: 0, down: false, worldX: 0, worldY: 0 };
+        
         window.addEventListener('keydown', e => {
-            if (!player) return;
             keys[e.code] = true;
+            if (!player || gameState !== 'PLAYING') return;
             if(e.key === '1') player.switchSlot(0);
             if(e.key === '2') player.switchSlot(1);
             if(e.key === '3') player.switchSlot(2);
             if(e.key === '0') player.startHealing();
         });
         window.addEventListener('keyup', e => {
-            if (!player) return;
             keys[e.code] = false;
+            if (!player || gameState !== 'PLAYING') return;
             if(e.code === 'KeyR') player.reload();
             if(e.code === 'KeyF') interact();
         });
@@ -269,24 +273,19 @@
         window.addEventListener('mousedown', () => mouse.down = true);
         window.addEventListener('mouseup', () => mouse.down = false);
 
-        // --- Firebase Logic ---
-
+        // --- Matchmaking ---
         const btn = document.getElementById('find-match-btn');
         const statusTxt = document.getElementById('match-status');
 
         auth.onAuthStateChanged((user) => {
-            if (user) {
-                currentUser = user;
-                btn.disabled = false;
-            } else {
-                signInAnonymously(auth);
-            }
+            if (user) { currentUser = user; btn.disabled = false; } 
+            else { signInAnonymously(auth); }
         });
 
         btn.addEventListener('click', async () => {
             if (!currentUser) return;
             btn.disabled = true;
-            statusTxt.innerText = "Searching for open games...";
+            statusTxt.innerText = "Checking for games...";
 
             try {
                 const q = query(collection(db, GAMES_COLLECTION), where("status", "==", "waiting"));
@@ -294,29 +293,26 @@
                 let foundGame = null;
 
                 querySnapshot.forEach((doc) => {
-                    if (doc.data().hostId !== currentUser.uid && !doc.data().guestId) {
-                        foundGame = doc;
-                    }
+                    if (doc.data().hostId !== currentUser.uid) foundGame = doc;
                 });
 
                 if (foundGame) {
-                    statusTxt.innerText = "Game found! Joining...";
                     currentGameId = foundGame.id;
                     isHost = false;
-                    await updateDoc(doc(db, GAMES_COLLECTION, currentGameId), {
-                        guestId: currentUser.uid, status: 'active', startTime: Date.now()
-                    });
-                    startGameListener(currentGameId);
+                    mapSeed = foundGame.data().seed || 12345;
+                    statusTxt.innerText = "Game found! Entering...";
+                    await updateDoc(doc(db, GAMES_COLLECTION, currentGameId), { guestId: currentUser.uid, status: 'active' });
+                    startGame(false);
                 } else {
-                    statusTxt.innerText = "Creating new game... Waiting for opponent.";
+                    statusTxt.innerText = "No games found. Hosting new game...";
                     isHost = true;
                     mapSeed = Math.floor(Math.random() * 100000);
                     const docRef = await addDoc(collection(db, GAMES_COLLECTION), {
-                        hostId: currentUser.uid, guestId: null, status: 'waiting',
-                        seed: mapSeed, createdAt: Date.now()
+                        hostId: currentUser.uid, guestId: null, status: 'waiting', seed: mapSeed, createdAt: Date.now()
                     });
                     currentGameId = docRef.id;
-                    startGameListener(currentGameId);
+                    startGame(true);
+                    listenForGuest();
                 }
             } catch (e) {
                 console.error("Match error:", e);
@@ -325,25 +321,34 @@
             }
         });
 
-        function startGameListener(gameId) {
-            onSnapshot(doc(db, GAMES_COLLECTION, gameId), (docSnap) => {
+        function listenForGuest() {
+            const unsub = onSnapshot(doc(db, GAMES_COLLECTION, currentGameId), (docSnap) => {
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    if (data.status === 'active' && gameState === 'MENU') {
-                        if (data.seed) mapSeed = data.seed;
-                        
-                        document.getElementById('start-screen').classList.add('hidden');
-                        document.getElementById('status-msg').innerText = "OPPONENT CONNECTED";
-                        document.getElementById('status-msg').classList.remove('hidden');
-                        setTimeout(() => document.getElementById('status-msg').classList.add('hidden'), 3000);
-                        
-                        initGame();
-                        gameState = 'PLAYING';
-                        startSync();
-                        loop();
+                    if (data.status === 'active' && data.guestId) {
+                        showGameMessage("PLAYER 2 CONNECTED!");
+                        unsub();
                     }
                 }
             });
+        }
+
+        function showGameMessage(msg) {
+            const el = document.getElementById('game-message');
+            el.innerText = msg; el.style.opacity = 1;
+            setTimeout(() => el.style.opacity = 0, 4000);
+        }
+
+        function startGame(isHosting) {
+            document.getElementById('start-screen').classList.add('hidden');
+            if (isHosting) showGameMessage("HOSTING: WAITING FOR P2...");
+            else showGameMessage("CONNECTED TO HOST!");
+
+            initGame(mapSeed);
+            gameState = 'PLAYING';
+            lastTime = performance.now(); 
+            startSync();
+            requestAnimationFrame(loop);
         }
 
         let lastSyncTime = 0;
@@ -351,7 +356,7 @@
             setInterval(async () => {
                 if (gameState !== 'PLAYING' || !player || !currentGameId) return;
                 const now = Date.now();
-                if (now - lastSyncTime < 100) return;
+                if (now - lastSyncTime < 80) return; 
                 lastSyncTime = now;
 
                 const playerData = {
@@ -362,22 +367,24 @@
                     vest: player.vestLevel, pack: player.backpackLevel,
                     shoot: player.lastShotTime
                 };
-                try {
-                    await setDoc(doc(db, `${GAMES_COLLECTION}/${currentGameId}/players`, currentUser.uid), playerData);
-                } catch(e) {}
+                try { setDoc(doc(db, `${GAMES_COLLECTION}/${currentGameId}/players`, currentUser.uid), playerData); } catch(e) {}
             }, 100);
 
             onSnapshot(collection(db, `${GAMES_COLLECTION}/${currentGameId}/players`), (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
-                    const data = change.doc.data();
-                    if (change.doc.id !== currentUser.uid && opponent) {
-                        opponent.targetX = data.x; opponent.targetY = data.y;
-                        opponent.targetAngle = data.angle; opponent.hp = data.hp;
-                        opponent.vestLevel = data.vest || 0; opponent.backpackLevel = data.pack || 0;
-                        if (data.shoot > opponent.lastShotTime) {
-                            opponent.lastShotTime = data.shoot;
-                            opponent.activeWeapon = data.wep;
-                            opponent.triggerShoot(data.wep);
+                    if (change.type === "added" || change.type === "modified") {
+                        const pid = change.doc.id;
+                        const data = change.doc.data();
+                        if (pid !== currentUser.uid && opponent) {
+                            opponent.connected = true; 
+                            opponent.targetX = data.x; opponent.targetY = data.y;
+                            opponent.targetAngle = data.angle; opponent.hp = data.hp;
+                            opponent.vestLevel = data.vest || 0; opponent.backpackLevel = data.pack || 0;
+                            if (data.shoot > opponent.lastShotTime) {
+                                opponent.lastShotTime = data.shoot;
+                                opponent.activeWeapon = data.wep;
+                                opponent.triggerShoot(data.wep);
+                            }
                         }
                     }
                 });
@@ -393,8 +400,11 @@
             constructor(x, y, isRemote = false) {
                 super(x, y, 25);
                 this.isRemote = isRemote;
+                this.connected = !isRemote;
                 this.hp = 100; this.maxHp = 100;
-                this.speed = 4.5; this.angle = 0;
+                this.speed = 300; 
+                this.angle = 0;
+                
                 this.inventoryState = [null, null, { type: 'fist', ammo: Infinity, mag: Infinity }];
                 this.activeSlot = 2; 
                 this.ammoBag = { '556mm': 0, '762mm': 0, '9mm': 0, '12gauge': 0, '308sub': 0 };
@@ -433,13 +443,15 @@
             }
 
             updateRemote(dt) {
-                if(isNaN(this.targetX) || isNaN(this.targetY)) return;
-                this.x += (this.targetX - this.x) * 0.2;
-                this.y += (this.targetY - this.y) * 0.2;
+                if (!this.connected) return;
+                this.x += (this.targetX - this.x) * 5 * dt;
+                this.y += (this.targetY - this.y) * 5 * dt;
+                
                 let da = (this.targetAngle - this.angle);
                 while (da > Math.PI) da -= Math.PI * 2;
                 while (da < -Math.PI) da += Math.PI * 2;
-                this.angle += da * 0.2;
+                this.angle += da * 5 * dt;
+                
                 if (this.hp <= 0 && !this.dead) { this.dead = true; endGame(true); }
             }
 
@@ -527,7 +539,9 @@
                 if (keys['KeyA']) dx -= 1; if (keys['KeyD']) dx += 1;
                 if (dx!==0 || dy!==0) {
                     let len = Math.hypot(dx,dy);
-                    this.x += (dx/len) * this.speed; this.y += (dy/len) * this.speed;
+                    let moveAmt = this.speed * dt;
+                    this.x += (dx/len) * moveAmt; 
+                    this.y += (dy/len) * moveAmt;
                     if(this.isHealing) this.cancelAction();
                 }
                 this.angle = Math.atan2(mouse.worldY - this.y, mouse.worldX - this.x);
@@ -538,7 +552,14 @@
 
                 let wallHit = false;
                 for (let wall of walls) { if (circleRectCollide(this, wall)) { wallHit = true; break; } }
-                if(wallHit) { this.x -= (dx !== 0 ? (dx/Math.hypot(dx,dy))*this.speed : 0); this.y -= (dy !== 0 ? (dy/Math.hypot(dx,dy))*this.speed : 0); }
+                if(wallHit) { 
+                    if (dx!==0 || dy!==0) {
+                        let len = Math.hypot(dx,dy);
+                        let moveAmt = this.speed * dt;
+                        this.x -= (dx/len) * moveAmt; 
+                        this.y -= (dy/len) * moveAmt;
+                    }
+                }
 
                 this.x = Math.max(this.radius, Math.min(MAP_SIZE - this.radius, this.x));
                 this.y = Math.max(this.radius, Math.min(MAP_SIZE - this.radius, this.y));
@@ -553,7 +574,11 @@
                 const wep = this.getActiveWeapon(); const stats = WEAPONS[wep.type];
                 if (wep.type === 'fist') {
                      const now = Date.now();
-                     if (now - this.lastShotTime >= stats.fireRate) this.lastShotTime = now;
+                     if (now - this.lastShotTime >= stats.fireRate) {
+                         this.lastShotTime = now;
+                         // Fist Projectile added so you can break crates
+                         bullets.push(new Bullet(this.x + Math.cos(this.angle)*30, this.y + Math.sin(this.angle)*30, this.angle, this, stats));
+                     }
                      return;
                 }
                 if (wep.mag <= 0) { if (!this.reloading) this.reload(); return; }
@@ -606,6 +631,8 @@
 
             draw() {
                 if (this.dead) return;
+                if (this.isRemote && !this.connected) return;
+
                 let opacity = this.inBush ? 0.4 : 1.0;
                 ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = opacity; ctx.rotate(this.angle);
 
@@ -780,6 +807,39 @@
             draw() { ctx.globalAlpha=this.life; ctx.fillStyle=this.color; ctx.font='bold 20px Arial'; ctx.fillText(this.text,this.x,this.y); ctx.globalAlpha=1; }
         }
 
+        function circleRectCollide(circle, rect) {
+            let distX = Math.abs(circle.x - rect.x - rect.w/2);
+            let distY = Math.abs(circle.y - rect.y - rect.h/2);
+            if (distX > (rect.w/2 + circle.radius)) return false;
+            if (distY > (rect.h/2 + circle.radius)) return false;
+            if (distX <= (rect.w/2)) return true; 
+            if (distY <= (rect.h/2)) return true;
+            let dx = distX - rect.w/2; let dy = distY - rect.h/2;
+            return (dx*dx + dy*dy <= (circle.radius*circle.radius));
+        }
+
+        function spawnAmmoLoot(x, y) {
+             let types = ['ammo_556mm', 'ammo_762mm', 'ammo_9mm', 'ammo_12gauge'];
+             let r = types[Math.floor(seededRandom() * types.length)];
+             loot.push(new Loot(x, y, r));
+        }
+
+        function spawnLoot(x, y, highTier = false) {
+            let r = seededRandom();
+            let item;
+            if (highTier) {
+                if (r < 0.2) item = 'scope4x'; else if (r < 0.3) item = 'scope8x';
+                else if (r < 0.4) item = 'vest2'; else if (r < 0.5) item = 'pack2';
+                else if (r < 0.7) item = 'ak'; else item = 'medkit';
+            } else {
+                if (r < 0.05) item = 'scope2x'; else if (r < 0.1) item = 'vest1';
+                else if (r < 0.15) item = 'pack1'; else if (r < 0.3) item = 'medkit';
+                else if (r < 0.5) item = 'pistol'; else if (r < 0.65) item = 'smg';
+                else if (r < 0.75) item = 'shotgun'; else { spawnAmmoLoot(x, y); return; }
+            }
+            loot.push(new Loot(x, y, item));
+        }
+
         function createBuilding(x, y, w, h, type) {
             floors.push({x:x, y:y, w:w, h:h, color: type === 'club' ? COLORS.floorClub : COLORS.floorHouse});
             const THICK = 15;
@@ -794,12 +854,10 @@
             roofs.push(new Roof(x, y, w, h));
         }
 
-        function initGame() {
+        function initGame(seed) {
+            mapSeed = seed || 12345;
             bullets = []; obstacles = []; loot = []; particles = []; walls = []; roofs = []; floors = [];
             
-            // Re-seed manually for consistency if mapSeed is somehow broken
-            if (!mapSeed || isNaN(mapSeed)) mapSeed = 12345;
-
             createBuilding(MAP_SIZE/2 - 400, MAP_SIZE/2 - 300, 800, 600, 'club');
 
             for(let i=0; i<15; i++) {
@@ -822,15 +880,16 @@
                 }
             }
 
+            // Adjusted spawn points to be safely inside the club
             if (isHost) {
-                player = new Player(MAP_SIZE/2 - 400, MAP_SIZE/2);
-                opponent = new Player(MAP_SIZE/2 + 400, MAP_SIZE/2, true);
+                player = new Player(MAP_SIZE/2 - 300, MAP_SIZE/2);
+                opponent = new Player(MAP_SIZE/2 + 300, MAP_SIZE/2, true);
             } else {
-                player = new Player(MAP_SIZE/2 + 400, MAP_SIZE/2);
-                opponent = new Player(MAP_SIZE/2 - 400, MAP_SIZE/2, true);
+                player = new Player(MAP_SIZE/2 + 300, MAP_SIZE/2);
+                opponent = new Player(MAP_SIZE/2 - 300, MAP_SIZE/2, true);
             }
 
-            zone = { x: MAP_SIZE/2, y: MAP_SIZE/2, radius: ZONE_PHASES[0].r, phaseIdx: 0, damage: 0, damageTick: 0 };
+            zone = { x: MAP_SIZE/2, y: MAP_SIZE/2, radius: MAP_SIZE, phaseIdx: 0, damage: 0, damageTick: 0 };
             gameTime = 0;
             updateUI();
         }
@@ -870,7 +929,7 @@
         }
 
         function updateUI() {
-            if (!player || !opponent) return;
+            if (!player) return;
             document.getElementById('health-bar').style.width = `${Math.max(0, player.hp)}%`;
 
             for(let i=0; i<3; i++) {
@@ -896,11 +955,7 @@
             if(player.backpackLevel > 0) bagEl.classList.add(`gear-lvl-${player.backpackLevel}`);
 
             document.getElementById('scope-display').innerText = `${player.scopeLevel}x`;
-            
-            // Safety check for opponent
-            let oppAlive = !opponent.dead;
-            // If we haven't received opponent data yet, assume alive
-            document.getElementById('kill-feed').innerText = oppAlive ? "Opponent Alive" : "Opponent Dead";
+            document.getElementById('kill-feed').innerText = opponent && opponent.connected ? "Opponent Connected" : "Waiting for Opponent...";
             
             document.getElementById('ammo-556').innerText = player.ammoBag['556mm'];
             document.getElementById('ammo-762').innerText = player.ammoBag['762mm'];
@@ -911,6 +966,7 @@
 
         function drawMinimap() {
             if (!player || !opponent) return;
+
             const mmX = width - MINIMAP_SIZE - 20;
             const mmY = height - MINIMAP_SIZE - 20;
             const scale = MINIMAP_SIZE / MAP_SIZE;
@@ -926,7 +982,6 @@
             ctx.fillStyle = '#7f8c8d';
             for(let r of roofs) { ctx.fillRect(mmX + r.x*scale, mmY + r.y*scale, r.w*scale, r.h*scale); }
 
-            // Airdrops
             obstacles.forEach(o => {
                 if(o.type === 'airdrop' && !o.dead) {
                     ctx.strokeStyle = 'red'; ctx.lineWidth = 2;
@@ -939,7 +994,8 @@
                 ctx.fillStyle = '#f1c40f'; ctx.beginPath();
                 ctx.arc(mmX + player.x*scale, mmY + player.y*scale, 3, 0, Math.PI*2); ctx.fill();
             }
-            if(!opponent.dead && opponent.dist(player) < 2000) { 
+            
+            if(opponent.connected && !opponent.dead && opponent.dist(player) < 2000) { 
                 ctx.fillStyle = '#e74c3c'; ctx.beginPath();
                 ctx.arc(mmX + opponent.x*scale, mmY + opponent.y*scale, 3, 0, Math.PI*2); ctx.fill();
             }
@@ -955,7 +1011,6 @@
             lastTime = now;
             gameTime += dt;
 
-            // Update Logic
             if (zone.phaseIdx < ZONE_PHASES.length - 1) {
                 if (gameTime > ZONE_PHASES[zone.phaseIdx].t) {
                     zone.phaseIdx++; zone.damage = ZONE_PHASES[zone.phaseIdx].dmg;
@@ -1006,6 +1061,7 @@
                     }
                 }
                 if (b.life <= 0) return;
+                
                 [player, opponent].forEach(ent => {
                     if (ent.dead || ent === b.owner) return;
                     if (Math.hypot(b.x - ent.x, b.y - ent.y) < ent.radius) {
@@ -1020,7 +1076,6 @@
             particles = particles.filter(p => p.life > 0);
             loot = loot.filter(l => !l.dead);
 
-            // Draw
             if (screenShake > 0) {
                 ctx.save();
                 let sx = (Math.random()-0.5)*screenShake; let sy = (Math.random()-0.5)*screenShake;
@@ -1030,8 +1085,11 @@
             ctx.fillStyle = '#2c3e50'; ctx.fillRect(0, 0, width, height);
             ctx.translate(width/2, height/2);
             ctx.scale(cameraZoom, cameraZoom);
-            let camX = player.dead ? opponent.x : player.x;
+            
+            let camX = player.dead ? opponent.x : player.x; 
             let camY = player.dead ? opponent.y : player.y;
+            if(player.dead && opponent.connected) { camX = opponent.x; camY = opponent.y; }
+            
             ctx.translate(-camX, -camY);
 
             ctx.fillStyle = COLORS.ground; ctx.fillRect(0, 0, MAP_SIZE, MAP_SIZE);
