@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Surviv.io Clone - 1vs1 Multiplayer</title>
+    <title>Surviv.io</title>
     <style>
         body {
             margin: 0;
@@ -39,6 +39,7 @@
         .gear-lvl-1 { background: #95a5a6; border-color: #7f8c8d; }
         .gear-lvl-2 { background: #f1c40f; border-color: #f39c12; color: black; }
         .gear-lvl-3 { background: #2c3e50; border-color: #000; }
+        .gear-ghillie { background: #27ae60; border-color: #2ecc71; color: white; }
 
         #inventory-ui {
             position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
@@ -106,6 +107,21 @@
         }
         .btn:active { transform: translateY(5px); box-shadow: none; }
         .btn:disabled { background: #555; box-shadow: none; cursor: not-allowed; }
+
+        /* Winner Animation */
+        #winner-container {
+            display: flex; flex-direction: column; align-items: center;
+            font-size: 60px; font-weight: 900; color: #f1c40f;
+            text-shadow: 4px 4px 0 #000; text-transform: uppercase;
+        }
+        .win-word {
+            opacity: 0; transform: scale(0.5);
+            animation: popIn 0.5s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin: 5px 0;
+        }
+        @keyframes popIn {
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
@@ -137,6 +153,7 @@
         <div id="gear-container">
             <div id="gear-vest" class="gear-icon">V</div>
             <div id="gear-bag" class="gear-icon">B</div>
+            <div id="gear-ghillie" class="gear-icon hidden" style="background:#27ae60; border-color:#2ecc71;">G</div>
         </div>
 
         <div id="health-container"><div id="health-bar"></div></div>
@@ -145,15 +162,18 @@
     <!-- Start Screen -->
     <div id="start-screen" class="screen">
         <h1>Surviv.io 1vs1</h1>
-        <p><b>Instant Action:</b> First player hosts, Second player joins.<br>Controls: WASD to Move, R to Reload, F to Loot, 0 to Heal</p>
+        <p><b>Instant Action:</b> First player hosts, Second player joins.<br>Airdrop at 30s (Groza/AWM/Ghillie)<br>Loot Sync Enabled</p>
         <button id="find-match-btn" class="btn">ENTER BATTLE</button>
         <p id="match-status" style="margin-top: 20px; color: #f1c40f;"></p>
     </div>
 
     <!-- Game Over Screen -->
     <div id="game-over-screen" class="screen hidden">
-        <h1 id="go-title">GAME OVER</h1>
-        <button class="btn" onclick="location.reload()">MAIN MENU</button>
+        <div id="winner-container">
+            <!-- WINNER WINNER CHICKEN DINNER -->
+        </div>
+        <h1 id="go-title" style="font-size: 30px; margin-top: 30px; color: #e74c3c;"></h1>
+        <button class="btn" onclick="location.reload()" style="margin-top: 20px;">MAIN MENU</button>
     </div>
 
     <script type="module">
@@ -218,6 +238,7 @@
         let loot = [];
         let particles = [];
         let screenShake = 0;
+        let airdropDropped = false;
 
         const ZONE_PHASES = [
             { t: 0, r: MAP_SIZE, dmg: 0 },
@@ -243,10 +264,13 @@
             pistol: { name: 'M9', ammoType: '9mm', damage: 12, fireRate: 350, spread: 0.08, speed: 25, range: 600, capacity: 15, reloadTime: 1000, auto: false, color: '#f1c40f', count: 1 },
             ak: { name: 'AK-47', ammoType: '762mm', damage: 16, fireRate: 110, spread: 0.12, speed: 28, range: 900, capacity: 30, reloadTime: 2200, auto: true, color: '#3498db', count: 1 },
             shotgun: { name: 'M870', ammoType: '12gauge', damage: 10, fireRate: 900, spread: 0.35, speed: 22, range: 450, capacity: 5, reloadTime: 2800, auto: false, color: '#e74c3c', count: 6 },
-            sniper: { name: 'SV-98', ammoType: '556mm', damage: 85, fireRate: 1400, spread: 0.01, speed: 45, range: 1800, capacity: 5, reloadTime: 3000, auto: false, color: '#2ecc71', count: 1 },
             smg: { name: 'UZI', ammoType: '9mm', damage: 9, fireRate: 60, spread: 0.25, speed: 24, range: 500, capacity: 32, reloadTime: 1800, auto: true, color: '#f1c40f', count: 1 },
+            // New/Requested
+            kar98k: { name: 'Kar98k', ammoType: '762mm', damage: 75, fireRate: 1500, spread: 0.02, speed: 45, range: 2000, capacity: 5, reloadTime: 3000, auto: false, color: '#3498db', count: 1 },
+            // Supply
             m249: { name: 'M249', ammoType: '556mm', damage: 14, fireRate: 70, spread: 0.15, speed: 28, range: 1000, capacity: 100, reloadTime: 4000, auto: true, color: '#2ecc71', count: 1 },
-            awm: { name: 'AWM', ammoType: '308sub', damage: 180, fireRate: 1800, spread: 0.005, speed: 60, range: 2500, capacity: 5, reloadTime: 3500, auto: false, color: '#1abc9c', count: 1 }
+            groza: { name: 'Groza', ammoType: '762mm', damage: 20, fireRate: 80, spread: 0.1, speed: 30, range: 900, capacity: 30, reloadTime: 2000, auto: true, color: '#3498db', count: 1 },
+            awm: { name: 'AWM-S', ammoType: '308sub', damage: 180, fireRate: 1800, spread: 0.005, speed: 60, range: 2500, capacity: 5, reloadTime: 3500, auto: false, color: '#1abc9c', count: 1 }
         };
 
         const AMMO_TYPES = { '556mm': '#2ecc71', '762mm': '#3498db', '9mm': '#f1c40f', '12gauge': '#e74c3c', '308sub': '#1abc9c', 'none': 'transparent' };
@@ -348,6 +372,7 @@
             gameState = 'PLAYING';
             lastTime = performance.now(); 
             startSync();
+            startLootSync(); // New Loot Sync
             requestAnimationFrame(loop);
         }
 
@@ -365,6 +390,7 @@
                     hp: Math.round(player.hp),
                     wep: player.getActiveWeapon().type,
                     vest: player.vestLevel, pack: player.backpackLevel,
+                    ghillie: player.isGhillie, // Sync Ghillie
                     shoot: player.lastShotTime
                 };
                 try { setDoc(doc(db, `${GAMES_COLLECTION}/${currentGameId}/players`, currentUser.uid), playerData); } catch(e) {}
@@ -380,6 +406,7 @@
                             opponent.targetX = data.x; opponent.targetY = data.y;
                             opponent.targetAngle = data.angle; opponent.hp = data.hp;
                             opponent.vestLevel = data.vest || 0; opponent.backpackLevel = data.pack || 0;
+                            opponent.isGhillie = data.ghillie || false;
                             if (data.shoot > opponent.lastShotTime) {
                                 opponent.lastShotTime = data.shoot;
                                 opponent.activeWeapon = data.wep;
@@ -390,6 +417,34 @@
                 });
             });
         }
+
+        // --- LOOT SYNC ---
+        function startLootSync() {
+            // Listen for taken loot
+            onSnapshot(collection(db, `${GAMES_COLLECTION}/${currentGameId}/takenLoot`), (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const takenId = change.doc.id;
+                        // Remove from local array
+                        loot = loot.filter(l => l.id !== takenId);
+                    }
+                });
+            });
+        }
+
+        function takeLoot(item) {
+            // Remove locally first for instant feel
+            loot = loot.filter(l => l.id !== item.id);
+            // Tell server
+            try {
+                setDoc(doc(db, `${GAMES_COLLECTION}/${currentGameId}/takenLoot`, item.id), {
+                    takenBy: currentUser.uid,
+                    at: Date.now()
+                });
+            } catch(e) {}
+        }
+
+        // --- Classes ---
 
         class Entity {
             constructor(x, y, radius) { this.x=x; this.y=y; this.radius=radius; this.dead=false; }
@@ -411,6 +466,7 @@
                 this.medkits = 0;
                 this.vestLevel = 0; this.backpackLevel = 0;
                 this.scopeLevel = 1;
+                this.isGhillie = false;
 
                 this.targetX = x; this.targetY = y; this.targetAngle = 0;
                 this.activeWeapon = 'fist';
@@ -446,12 +502,10 @@
                 if (!this.connected) return;
                 this.x += (this.targetX - this.x) * 5 * dt;
                 this.y += (this.targetY - this.y) * 5 * dt;
-                
                 let da = (this.targetAngle - this.angle);
                 while (da > Math.PI) da -= Math.PI * 2;
                 while (da < -Math.PI) da += Math.PI * 2;
                 this.angle += da * 5 * dt;
-                
                 if (this.hp <= 0 && !this.dead) { this.dead = true; endGame(true); }
             }
 
@@ -503,6 +557,12 @@
                     if (lvl > this.backpackLevel) { this.backpackLevel = lvl; particles.push(new TextParticle(this.x, this.y - 40, `Lvl ${lvl} Bag`, "#3498db")); updateUI(); }
                     return;
                 }
+                if (type === 'ghillie') {
+                    this.isGhillie = true;
+                    particles.push(new TextParticle(this.x, this.y - 40, "Ghillie Suit", "#27ae60"));
+                    updateUI(); return;
+                }
+
                 const stats = WEAPONS[type];
                 if(stats.ammoType !== 'none') {
                     let max = this.getMaxAmmo(stats.ammoType);
@@ -576,7 +636,6 @@
                      const now = Date.now();
                      if (now - this.lastShotTime >= stats.fireRate) {
                          this.lastShotTime = now;
-                         // Fist Projectile added so you can break crates
                          bullets.push(new Bullet(this.x + Math.cos(this.angle)*30, this.y + Math.sin(this.angle)*30, this.angle, this, stats));
                      }
                      return;
@@ -636,24 +695,34 @@
                 let opacity = this.inBush ? 0.4 : 1.0;
                 ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = opacity; ctx.rotate(this.angle);
 
-                let packColor = '#665c3b';
-                if(this.backpackLevel===1) packColor = COLORS.pack1; if(this.backpackLevel===2) packColor = COLORS.pack2; if(this.backpackLevel===3) packColor = COLORS.pack3;
-                ctx.fillStyle = packColor; ctx.fillRect(-20, -15, 12, 30);
+                // If Ghillie, draw bush instead of body/pack
+                if (this.isGhillie) {
+                    ctx.fillStyle = COLORS.bush;
+                    ctx.beginPath();
+                    for(let i=0; i<7; i++) {
+                        let a = (i/7)*Math.PI*2; let r = 35 * (0.8 + seededRandom()*0.2);
+                        ctx.arc(Math.cos(a)*15, Math.sin(a)*15, r, 0, Math.PI*2);
+                    } ctx.fill();
+                } else {
+                    let packColor = '#665c3b';
+                    if(this.backpackLevel===1) packColor = COLORS.pack1; if(this.backpackLevel===2) packColor = COLORS.pack2; if(this.backpackLevel===3) packColor = COLORS.pack3;
+                    ctx.fillStyle = packColor; ctx.fillRect(-20, -15, 12, 30);
 
-                ctx.fillStyle = COLORS.playerHand;
-                let rightOffset = 0;
-                if (Date.now() - this.lastShotTime < 100 && this.getActiveWeapon().type === 'fist') rightOffset = 15;
-                ctx.beginPath(); ctx.arc(20 + rightOffset, 20, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-                ctx.beginPath(); ctx.arc(20, -20, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    ctx.fillStyle = COLORS.playerHand;
+                    let rightOffset = 0;
+                    if (Date.now() - this.lastShotTime < 100 && this.getActiveWeapon().type === 'fist') rightOffset = 15;
+                    ctx.beginPath(); ctx.arc(20 + rightOffset, 20, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+                    ctx.beginPath(); ctx.arc(20, -20, 10, 0, Math.PI*2); ctx.fill(); ctx.stroke();
 
-                if (this.getActiveWeapon().type !== 'fist') { ctx.fillStyle = '#333'; ctx.fillRect(10, -5, 45, 10); }
+                    if (this.getActiveWeapon().type !== 'fist') { ctx.fillStyle = '#333'; ctx.fillRect(10, -5, 45, 10); }
 
-                let bodyColor = this.isRemote ? COLORS.opponentBody : COLORS.playerBody;
-                if(this.vestLevel === 1) bodyColor = COLORS.vest1; if(this.vestLevel === 2) bodyColor = COLORS.vest2; if(this.vestLevel === 3) bodyColor = COLORS.vest3;
-                
-                ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0,0, this.radius, 0, Math.PI*2); ctx.fill();
-                ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.stroke();
-                ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.beginPath(); ctx.arc(0,0, 15, 0, Math.PI*2); ctx.fill();
+                    let bodyColor = this.isRemote ? COLORS.opponentBody : COLORS.playerBody;
+                    if(this.vestLevel === 1) bodyColor = COLORS.vest1; if(this.vestLevel === 2) bodyColor = COLORS.vest2; if(this.vestLevel === 3) bodyColor = COLORS.vest3;
+                    
+                    ctx.fillStyle = bodyColor; ctx.beginPath(); ctx.arc(0,0, this.radius, 0, Math.PI*2); ctx.fill();
+                    ctx.lineWidth = 3; ctx.strokeStyle = '#000'; ctx.stroke();
+                    ctx.fillStyle = 'rgba(0,0,0,0.1)'; ctx.beginPath(); ctx.arc(0,0, 15, 0, Math.PI*2); ctx.fill();
+                }
                 ctx.restore();
             }
         }
@@ -692,9 +761,12 @@
                     }
                     else if(this.type === 'airdrop') {
                         let rand = seededRandom();
-                        if(rand < 0.5) loot.push(new Loot(this.x, this.y, 'awm'));
+                        if(rand < 0.33) loot.push(new Loot(this.x, this.y, 'awm'));
+                        else if(rand < 0.66) loot.push(new Loot(this.x, this.y, 'groza'));
                         else loot.push(new Loot(this.x, this.y, 'm249'));
-                        loot.push(new Loot(this.x+30, this.y, 'vest3')); loot.push(new Loot(this.x-30, this.y, 'scope8x'));
+                        
+                        loot.push(new Loot(this.x+30, this.y, 'ghillie')); 
+                        loot.push(new Loot(this.x-30, this.y, 'scope8x'));
                     }
                     for(let i=0; i<6; i++) particles.push(new Particle(this.x, this.y, '#6c3483'));
                 }
@@ -733,7 +805,10 @@
 
         class Loot extends Entity {
             constructor(x, y, type) {
-                super(x, y, 20); this.type = type; 
+                super(x, y, 20); 
+                this.type = type; 
+                // Unique Loot ID for sync
+                this.id = Math.floor(x) + "_" + Math.floor(y) + "_" + type;
                 this.bob = seededRandom()*Math.PI;
             }
             draw() {
@@ -753,6 +828,8 @@
                     label = "V"; color = "#95a5a6"; sub = this.type.replace('vest','Lvl ');
                 } else if(this.type.startsWith('pack')) {
                     label = "B"; color = "#3498db"; sub = this.type.replace('pack','Lvl ');
+                } else if(this.type === 'ghillie') {
+                    label = "G"; color = "#27ae60"; sub = "SUIT";
                 } else if(WEAPONS[this.type]) { 
                     label = WEAPONS[this.type].name.substring(0,3); color = WEAPONS[this.type].color; sub = WEAPONS[this.type].name;
                 }
@@ -828,16 +905,29 @@
             let r = seededRandom();
             let item;
             if (highTier) {
-                if (r < 0.2) item = 'scope4x'; else if (r < 0.3) item = 'scope8x';
-                else if (r < 0.4) item = 'vest2'; else if (r < 0.5) item = 'pack2';
-                else if (r < 0.7) item = 'ak'; else item = 'medkit';
+                if (r < 0.15) item = 'scope4x'; else if (r < 0.25) item = 'scope8x';
+                else if (r < 0.35) item = 'vest2'; else if (r < 0.45) item = 'pack2';
+                else if (r < 0.65) item = 'ak'; else if (r < 0.85) item = 'kar98k'; else item = 'medkit';
             } else {
                 if (r < 0.05) item = 'scope2x'; else if (r < 0.1) item = 'vest1';
-                else if (r < 0.15) item = 'pack1'; else if (r < 0.3) item = 'medkit';
-                else if (r < 0.5) item = 'pistol'; else if (r < 0.65) item = 'smg';
-                else if (r < 0.75) item = 'shotgun'; else { spawnAmmoLoot(x, y); return; }
+                else if (r < 0.15) item = 'pack1'; else if (r < 0.25) item = 'medkit';
+                else if (r < 0.4) item = 'pistol'; else if (r < 0.55) item = 'smg';
+                else if (r < 0.7) item = 'shotgun'; else if (r < 0.75) item = 'kar98k';
+                else { spawnAmmoLoot(x, y); return; }
             }
             loot.push(new Loot(x, y, item));
+        }
+
+        function spawnAirdrop() {
+            // Random location inside CURRENT zone
+            let r = zone.radius * 0.8; // Safe inside
+            let a = Math.random() * Math.PI * 2;
+            let dist = Math.random() * r;
+            let dx = zone.x + Math.cos(a) * dist;
+            let dy = zone.y + Math.sin(a) * dist;
+            
+            obstacles.push(new Obstacle(dx, dy, 'airdrop'));
+            particles.push(new TextParticle(player.x, player.y - 100, "AIRDROP INCOMING!", "#e74c3c"));
         }
 
         function createBuilding(x, y, w, h, type) {
@@ -880,7 +970,6 @@
                 }
             }
 
-            // Adjusted spawn points to be safely inside the club
             if (isHost) {
                 player = new Player(MAP_SIZE/2 - 300, MAP_SIZE/2);
                 opponent = new Player(MAP_SIZE/2 + 300, MAP_SIZE/2, true);
@@ -891,15 +980,35 @@
 
             zone = { x: MAP_SIZE/2, y: MAP_SIZE/2, radius: MAP_SIZE, phaseIdx: 0, damage: 0, damageTick: 0 };
             gameTime = 0;
+            airdropDropped = false;
             updateUI();
         }
 
         function endGame(victory) {
             gameState = 'GAMEOVER';
+            const screen = document.getElementById('game-over-screen');
+            screen.classList.remove('hidden');
+            
+            const winContainer = document.getElementById('winner-container');
+            winContainer.innerHTML = '';
             const title = document.getElementById('go-title');
-            title.innerText = victory ? "WINNER WINNER!" : "BETTER LUCK NEXT TIME";
-            title.style.color = victory ? "#2ecc71" : "#e74c3c";
-            document.getElementById('game-over-screen').classList.remove('hidden');
+
+            if (victory) {
+                const text = "WINNER WINNER CHICKEN DINNER";
+                const words = text.split(' ');
+                words.forEach((word, i) => {
+                    const span = document.createElement('div');
+                    span.classList.add('win-word');
+                    span.innerText = word;
+                    span.style.animationDelay = `${i * 0.3}s`; // Stagger animation
+                    winContainer.appendChild(span);
+                });
+                title.innerText = "VICTORY!";
+                title.style.color = "#2ecc71";
+            } else {
+                title.innerText = "BETTER LUCK NEXT TIME";
+                title.style.color = "#e74c3c";
+            }
         }
 
         function interact() {
@@ -911,8 +1020,11 @@
             });
 
             if (closest) {
+                // Sync Removal
+                takeLoot(closest);
+
                 if (closest.type === 'medkit') {
-                    player.medkits++; closest.dead = true;
+                    player.medkits++; 
                     particles.push(new TextParticle(player.x, player.y-20, "+1 Medkit", "#e74c3c"));
                 } else if (closest.type.startsWith('ammo_')) {
                     let at = closest.type.replace('ammo_', '');
@@ -920,9 +1032,9 @@
                     let current = player.ammoBag[at];
                     let added = Math.min(max - current, 30);
                     player.ammoBag[at] += added;
-                    if(added > 0) { closest.dead = true; particles.push(new TextParticle(player.x, player.y-20, "+Ammo", AMMO_TYPES[at])); }
+                    if(added > 0) particles.push(new TextParticle(player.x, player.y-20, "+Ammo", AMMO_TYPES[at]));
                 } else {
-                    player.equipWeapon(closest.type); closest.dead = true;
+                    player.equipWeapon(closest.type);
                 }
                 updateUI();
             }
@@ -953,6 +1065,9 @@
             const bagEl = document.getElementById('gear-bag');
             bagEl.className = 'gear-icon';
             if(player.backpackLevel > 0) bagEl.classList.add(`gear-lvl-${player.backpackLevel}`);
+
+            const ghillieEl = document.getElementById('gear-ghillie');
+            if(player.isGhillie) ghillieEl.classList.remove('hidden'); else ghillieEl.classList.add('hidden');
 
             document.getElementById('scope-display').innerText = `${player.scopeLevel}x`;
             document.getElementById('kill-feed').innerText = opponent && opponent.connected ? "Opponent Connected" : "Waiting for Opponent...";
@@ -995,10 +1110,7 @@
                 ctx.arc(mmX + player.x*scale, mmY + player.y*scale, 3, 0, Math.PI*2); ctx.fill();
             }
             
-            if(opponent.connected && !opponent.dead && opponent.dist(player) < 2000) { 
-                ctx.fillStyle = '#e74c3c'; ctx.beginPath();
-                ctx.arc(mmX + opponent.x*scale, mmY + opponent.y*scale, 3, 0, Math.PI*2); ctx.fill();
-            }
+            // Opponent hidden on minimap (Hardcore!)
             ctx.restore();
         }
 
@@ -1010,6 +1122,12 @@
             const dt = (now - lastTime) / 1000;
             lastTime = now;
             gameTime += dt;
+
+            // Airdrop at 30s
+            if (gameTime > 30 && !airdropDropped) {
+                spawnAirdrop();
+                airdropDropped = true;
+            }
 
             if (zone.phaseIdx < ZONE_PHASES.length - 1) {
                 if (gameTime > ZONE_PHASES[zone.phaseIdx].t) {
