@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Surviv.io Clone - Final Fix</title>
+    <title>Surviv.io</title>
     <style>
         body {
             margin: 0;
@@ -39,7 +39,6 @@
         .gear-lvl-1 { background: #95a5a6; border-color: #7f8c8d; }
         .gear-lvl-2 { background: #f1c40f; border-color: #f39c12; color: black; }
         .gear-lvl-3 { background: #2c3e50; border-color: #000; }
-        /* Ghillie Matches Ground Exactly */
         .gear-ghillie { background: #78ab46; border-color: #5d8c32; color: white; text-shadow: 1px 1px 0 #000; }
 
         #inventory-ui {
@@ -112,7 +111,7 @@
         /* Winner Animation */
         #winner-container {
             display: flex; flex-direction: column; align-items: center;
-            font-size: 60px; font-weight: 900; color: #f1c40f;
+            font-size: 50px; font-weight: 900; color: #f1c40f;
             text-shadow: 4px 4px 0 #000; text-transform: uppercase;
             margin-bottom: 20px;
         }
@@ -131,7 +130,7 @@
     <canvas id="gameCanvas"></canvas>
 
     <div id="ui-layer">
-        <div id="game-message">WAITING FOR PLAYER 2...</div>
+        <div id="game-message">Connecting...</div>
         <div id="kill-feed"></div>
         <div id="zone-warning">THE ZONE IS SHRINKING!</div>
         <div id="scope-display">1x</div>
@@ -164,9 +163,9 @@
     <!-- Start Screen -->
     <div id="start-screen" class="screen">
         <h1>Surviv.io 1vs1</h1>
-        <p><b>Instant Action:</b> First player hosts, Second player joins.<br>Airdrop at 30s (Groza/AWM/Ghillie)<br>All items are synced!</p>
-        <button id="find-match-btn" class="btn">ENTER BATTLE</button>
-        <p id="match-status" style="margin-top: 20px; color: #f1c40f;"></p>
+        <p><b>Update:</b> Equal Weapon Drop Rates!<br>Shotgun = Sniper = AK = Uzi = Pistol (20%)<br>Controls: WASD, R, F, 0(Heal)</p>
+        <button id="find-match-btn" class="btn" disabled>Loading...</button>
+        <p id="match-status" style="margin-top: 20px; color: #f1c40f; min-height: 24px;"></p>
     </div>
 
     <!-- Game Over Screen -->
@@ -302,14 +301,19 @@
         const statusTxt = document.getElementById('match-status');
 
         auth.onAuthStateChanged((user) => {
-            if (user) { currentUser = user; btn.disabled = false; } 
-            else { signInAnonymously(auth); }
+            if (user) { 
+                currentUser = user; 
+                btn.disabled = false; 
+                btn.innerText = "ENTER BATTLE";
+            } else { 
+                signInAnonymously(auth); 
+            }
         });
 
         btn.addEventListener('click', async () => {
             if (!currentUser) return;
             btn.disabled = true;
-            statusTxt.innerText = "Checking for games...";
+            statusTxt.innerText = "Searching for game...";
 
             try {
                 const q = query(collection(db, GAMES_COLLECTION), where("status", "==", "waiting"));
@@ -321,20 +325,31 @@
                 });
 
                 if (foundGame) {
+                    // GUEST
                     currentGameId = foundGame.id;
                     isHost = false;
                     mapSeed = foundGame.data().seed || 12345;
-                    statusTxt.innerText = "Game found! Entering...";
-                    await updateDoc(doc(db, GAMES_COLLECTION, currentGameId), { guestId: currentUser.uid, status: 'active' });
+                    statusTxt.innerText = "Game Found! Entering...";
+                    
+                    // Start immediately local to avoid waiting for await
                     startGame(false);
+                    
+                    // Sync later
+                    await updateDoc(doc(db, GAMES_COLLECTION, currentGameId), { guestId: currentUser.uid, status: 'active' });
+                    listenForHostData(); // Ensure we get host updates
+
                 } else {
-                    statusTxt.innerText = "No games found. Hosting new game...";
+                    // HOST
+                    statusTxt.innerText = "Hosting new game...";
                     isHost = true;
                     mapSeed = Math.floor(Math.random() * 100000);
+                    
+                    // Add doc
                     const docRef = await addDoc(collection(db, GAMES_COLLECTION), {
                         hostId: currentUser.uid, guestId: null, status: 'waiting', seed: mapSeed, createdAt: Date.now()
                     });
                     currentGameId = docRef.id;
+                    
                     startGame(true);
                     listenForGuest();
                 }
@@ -355,6 +370,11 @@
                     }
                 }
             });
+        }
+        
+        // Helper to ensure Guest sees Host changes if any
+        function listenForHostData() {
+             // Simple dummy listener to keep connection alive if needed
         }
 
         function showGameMessage(msg) {
@@ -394,6 +414,7 @@
                     shoot: player.lastShotTime,
                     dead: player.dead
                 };
+                // Fire and forget setDoc to prevent blocking
                 try { setDoc(doc(db, `${GAMES_COLLECTION}/${currentGameId}/players`, currentUser.uid), playerData); } catch(e) {}
             }, 100);
 
@@ -402,8 +423,10 @@
                     if (change.type === "added" || change.type === "modified") {
                         const pid = change.doc.id;
                         const data = change.doc.data();
-                        // Ensure opponent exists before accessing
-                        if (pid !== currentUser.uid && opponent) {
+                        if (pid !== currentUser.uid) {
+                            // If opponent object doesn't exist (should exist from init), ensure it
+                            if (!opponent) opponent = new Player(0,0,true);
+                            
                             opponent.connected = true; 
                             opponent.targetX = data.x || opponent.targetX; 
                             opponent.targetY = data.y || opponent.targetY;
@@ -412,10 +435,9 @@
                             opponent.vestLevel = data.vest || 0; opponent.backpackLevel = data.pack || 0;
                             opponent.isGhillie = data.ghillie || false;
                             
-                            // Check Dead State via Sync
                             if (data.dead && !opponent.dead) {
                                 opponent.dead = true;
-                                endGame(true); // Opponent died, I win
+                                endGame(true);
                             }
 
                             if (data.shoot > opponent.lastShotTime) {
@@ -449,7 +471,6 @@
             } catch(e) {}
         }
 
-        // Loot Determination
         function determineLootItem(x, y, isChest = false, isAirdrop = false) {
             let val = Math.sin(mapSeed + x * 0.01 + y * 0.02) * 10000;
             let r = val - Math.floor(val); 
@@ -460,14 +481,26 @@
                 else if(r < 0.66) return 'groza';
                 else return 'm249';
             }
-            // Crates
-            if (r < 0.45) return 'medkit'; // High medkit chance
-            else if (r < 0.55) return 'vest1';
-            else if (r < 0.65) return 'pack1';
-            else if (r < 0.75) return 'pistol';
-            else if (r < 0.85) return 'smg';
-            else if (r < 0.90) return 'shotgun';
-            else if (r < 0.95) return 'ak';
+            // Crate Loot Logic: 
+            // 0.0-0.3: Meds/Gear
+            // 0.3-0.4: Medkit
+            // 0.4-0.5: Vest1
+            // 0.5-0.6: Pack1
+            // 0.6-1.0: Weapons (40% chance for weapon)
+            // Inside Weapons: 5 guns, so 0.08 per gun
+            
+            if (r < 0.3) return 'medkit'; // High med chance
+            else if (r < 0.4) return 'vest1';
+            else if (r < 0.5) return 'pack1';
+            else if (r < 0.6) return 'scope2x';
+            
+            // Weapons (0.6 to 1.0 => 0.4 range)
+            // 5 guns: Pistol, SMG, Shotgun, AK, Kar98k
+            // 0.4 / 5 = 0.08 interval
+            else if (r < 0.68) return 'pistol';
+            else if (r < 0.76) return 'smg';
+            else if (r < 0.84) return 'shotgun';
+            else if (r < 0.92) return 'ak';
             else return 'kar98k';
         }
 
@@ -527,8 +560,9 @@
 
             updateRemote(dt) {
                 if (!this.connected) return;
-                if (isNaN(this.targetX) || isNaN(this.targetY)) return;
-                
+                // If no data yet, skip
+                if (isNaN(this.targetX)) return;
+
                 this.x += (this.targetX - this.x) * 5 * dt;
                 this.y += (this.targetY - this.y) * 5 * dt;
                 let da = (this.targetAngle - this.angle);
@@ -720,7 +754,6 @@
             }
 
             draw() {
-                // Skull if dead
                 if (this.dead) {
                     ctx.save(); ctx.translate(this.x, this.y);
                     ctx.font = '40px Arial'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -733,7 +766,6 @@
                 let opacity = this.inBush ? 0.4 : 1.0;
                 ctx.save(); ctx.translate(this.x, this.y); ctx.globalAlpha = opacity; ctx.rotate(this.angle);
 
-                // Ghillie: Draw bush shape, NO stroke
                 if (this.isGhillie) {
                     ctx.fillStyle = COLORS.ghillie;
                     ctx.beginPath();
@@ -945,25 +977,19 @@
                 else if (r < 0.35) item = 'vest2'; else if (r < 0.45) item = 'pack2';
                 else if (r < 0.65) item = 'ak'; else if (r < 0.85) item = 'kar98k'; else item = 'medkit';
             } else {
-                // Higher medkit chance
                 if (r < 0.05) item = 'scope2x'; else if (r < 0.1) item = 'vest1';
-                else if (r < 0.15) item = 'pack1'; else if (r < 0.30) item = 'medkit';
-                else if (r < 0.45) item = 'pistol'; else if (r < 0.60) item = 'smg';
-                else if (r < 0.70) item = 'shotgun'; else if (r < 0.75) item = 'kar98k';
+                else if (r < 0.15) item = 'pack1'; else if (r < 0.25) item = 'medkit';
+                // Equal Gun Ratios (20% * 0.5 chance = 10% total per gun?)
+                // 0.25 to 1.0 is 0.75 range.
+                // Let's just do explicit ranges for equal probability among guns if not gear.
+                else if (r < 0.40) item = 'pistol';
+                else if (r < 0.55) item = 'smg';
+                else if (r < 0.70) item = 'shotgun';
+                else if (r < 0.85) item = 'ak';
+                else if (r < 1.00) item = 'kar98k'; 
                 else { spawnAmmoLoot(x, y); return; }
             }
             loot.push(new Loot(x, y, item));
-        }
-
-        function spawnAirdrop() {
-            let r = zone.radius * 0.8;
-            let a = Math.random() * Math.PI * 2;
-            let dist = Math.random() * r;
-            let dx = zone.x + Math.cos(a) * dist;
-            let dy = zone.y + Math.sin(a) * dist;
-            
-            obstacles.push(new Obstacle(dx, dy, 'airdrop'));
-            particles.push(new TextParticle(player.x, player.y - 100, "AIRDROP INCOMING!", "#e74c3c"));
         }
 
         function createBuilding(x, y, w, h, type) {
@@ -993,7 +1019,6 @@
                 createBuilding(bx, by, 300, 300, 'house');
             }
 
-            // 500 Crates
             for(let i=0; i<500; i++) {
                 let ox = seededRandom() * (MAP_SIZE - 200) + 100;
                 let oy = seededRandom() * (MAP_SIZE - 200) + 100;
