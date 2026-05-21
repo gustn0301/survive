@@ -4,187 +4,97 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SURVIV.IO — 1v1 Online</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+CiAgPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzFhMWExMCIvPgogIDxlbGxpcHNlIGN4PSIxNiIgY3k9IjE4IiByeD0iOCIgcnk9IjgiIGZpbGw9IiMxMTEiLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE2IiByPSI3IiBmaWxsPSIjM2E3YTQ0Ii8+CiAgPGNpcmNsZSBjeD0iMTYiIGN5PSIxMyIgcj0iNSIgZmlsbD0iIzJkNWEyZCIvPgogIDxlbGxpcHNlIGN4PSIxNiIgY3k9IjEzIiByeD0iNSIgcnk9IjMiIGZpbGw9IiMzYTcwMjAiLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjE0IiByPSIzIiBmaWxsPSIjYzhhODc4Ii8+CiAgPHJlY3QgeD0iMjAiIHk9IjE1IiB3aWR0aD0iOSIgaGVpZ2h0PSIzIiByeD0iMSIgZmlsbD0iIzU1NSIvPgogIDxyZWN0IHg9IjI2IiB5PSIxNC41IiB3aWR0aD0iMyIgaGVpZ2h0PSI0IiByeD0iMC41IiBmaWxsPSIjNDQ0Ii8+CiAgPHJlY3QgeD0iMTYiIHk9IjE0IiB3aWR0aD0iNyIgaGVpZ2h0PSI0IiByeD0iMSIgZmlsbD0iIzQ0NCIvPgogIDxjaXJjbGUgY3g9IjE4IiBjeT0iMTYiIHI9IjIiIGZpbGw9IiNjOGE4NzgiLz4KICA8Y2lyY2xlIGN4PSIyMiIgY3k9IjE2IiByPSIyIiBmaWxsPSIjYzhhODc4Ii8+CiAgPGNpcmNsZSBjeD0iMzAiIGN5PSIxNi41IiByPSIxLjUiIGZpbGw9IiNmZmU0NGEiLz4KPC9zdmc+"/>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap');
-
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --tan:#c8b87a;--tan2:#a89850;--green:#5a7a3a;--darkgreen:#2d4a1e;
-  --ui-bg:rgba(20,18,12,0.88);--ui-border:rgba(200,184,122,0.35);
+  --tan:#c8b87a;--tan2:#a89850;--green:#5a7a3a;
+  --ui-bg:rgba(20,18,12,0.92);--ui-border:rgba(200,184,122,0.3);
   --red:#e05252;--blue:#52a8e0;--white:#f0ead8;--dim:#8a8070;
 }
 html,body{width:100%;height:100%;overflow:hidden;background:#1a1a10;}
 body{display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;}
+#gameCanvas{display:block;cursor:crosshair;}
 
-#gameCanvas{display:block;cursor:crosshair;image-rendering:pixelated;}
-
-/* ── LOBBY SCREEN ── */
-#lobby{
-  position:fixed;inset:0;z-index:200;
-  background:radial-gradient(ellipse at center,#2a2a18 0%,#0e0e08 100%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
-}
-.lobby-logo{
-  font-size:72px;font-weight:700;letter-spacing:6px;text-transform:uppercase;
-  color:var(--tan);text-shadow:0 0 60px rgba(200,184,122,0.4),0 4px 0 #4a3a10;
-  line-height:1;margin-bottom:4px;
-}
-.lobby-tagline{font-size:13px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;margin-bottom:40px;}
-
-.lobby-panel{
-  background:var(--ui-bg);border:1px solid var(--ui-border);
-  border-radius:4px;padding:28px 36px;width:360px;
-  box-shadow:0 0 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(200,184,122,0.1);
-}
-.lobby-panel h2{font-size:14px;letter-spacing:3px;color:var(--tan);text-transform:uppercase;margin-bottom:20px;text-align:center;}
-.input-row{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
-.input-row label{font-size:12px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
-.input-row input{
-  background:rgba(255,255,255,0.05);border:1px solid var(--ui-border);
-  border-radius:3px;padding:10px 14px;font-size:15px;color:var(--white);
-  font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;
-  outline:none;transition:border-color .2s;
-}
+/* LOBBY */
+#lobby{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at center,#2a2a18 0%,#0e0e08 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;}
+.lobby-logo{font-size:72px;font-weight:700;letter-spacing:6px;text-transform:uppercase;color:var(--tan);text-shadow:0 0 60px rgba(200,184,122,0.4),0 4px 0 #4a3a10;line-height:1;margin-bottom:4px;}
+.lobby-tagline{font-size:13px;letter-spacing:4px;color:var(--dim);text-transform:uppercase;margin-bottom:36px;}
+.lobby-panel{background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:4px;padding:28px 36px;width:360px;box-shadow:0 0 60px rgba(0,0,0,0.8);}
+.lobby-panel h2{font-size:13px;letter-spacing:3px;color:var(--tan);text-transform:uppercase;margin-bottom:20px;text-align:center;}
+.input-row{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+.input-row label{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;}
+.input-row input{background:rgba(255,255,255,0.06);border:1px solid var(--ui-border);border-radius:3px;padding:10px 13px;font-size:15px;color:var(--white);font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;outline:none;transition:border-color .2s;}
 .input-row input:focus{border-color:var(--tan);}
-.btn-primary{
-  width:100%;padding:13px;background:var(--tan2);border:none;border-radius:3px;
-  font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:3px;
-  text-transform:uppercase;color:#1a1208;cursor:pointer;transition:all .15s;
-  margin-top:4px;
-}
-.btn-primary:hover{background:var(--tan);transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,184,122,0.3);}
-.btn-primary:active{transform:translateY(0);}
-.btn-primary:disabled{opacity:0.4;cursor:not-allowed;transform:none;}
-.divider{display:flex;align-items:center;gap:12px;margin:16px 0;}
+.btn-primary{width:100%;padding:13px;background:var(--tan2);border:none;border-radius:3px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:#1a1208;cursor:pointer;transition:all .15s;margin-top:2px;}
+.btn-primary:hover{background:var(--tan);box-shadow:0 4px 20px rgba(200,184,122,0.25);}
+.btn-primary:disabled{opacity:0.4;cursor:not-allowed;}
+.divider{display:flex;align-items:center;gap:10px;margin:14px 0;}
 .divider hr{flex:1;border:none;border-top:1px solid var(--ui-border);}
 .divider span{font-size:11px;color:var(--dim);letter-spacing:2px;}
-.room-row{display:flex;gap:8px;}
-.room-row input{flex:1;}
-.btn-secondary{
-  background:transparent;border:1px solid var(--ui-border);border-radius:3px;
-  padding:10px 16px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;
-  letter-spacing:1px;color:var(--tan);cursor:pointer;transition:all .15s;white-space:nowrap;
-}
+.room-row{display:flex;gap:8px;margin-bottom:8px;}
+.room-row .input-row{flex:1;margin:0;}
+.btn-secondary{background:transparent;border:1px solid var(--ui-border);border-radius:3px;padding:10px 14px;font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:600;letter-spacing:1px;color:var(--tan);cursor:pointer;transition:all .15s;white-space:nowrap;align-self:flex-end;}
 .btn-secondary:hover{background:rgba(200,184,122,0.1);border-color:var(--tan);}
-#status-msg{
-  font-size:13px;letter-spacing:1px;color:var(--dim);text-align:center;
-  margin-top:14px;min-height:20px;transition:color .3s;
-}
-#status-msg.ok{color:#7ac87a;}
-#status-msg.err{color:var(--red);}
-#status-msg.wait{color:var(--tan);}
+.btn-row{display:flex;gap:8px;}
+.btn-row .btn-secondary{flex:1;text-align:center;padding:11px 8px;}
+#status-msg{font-size:13px;letter-spacing:1px;color:var(--dim);text-align:center;margin-top:12px;min-height:18px;}
+#status-msg.ok{color:#7ac87a;}#status-msg.err{color:var(--red);}#status-msg.wait{color:var(--tan);}
 
-/* ── WAITING ROOM ── */
-#waiting{
-  position:fixed;inset:0;z-index:190;
-  background:radial-gradient(ellipse at center,#2a2a18 0%,#0e0e08 100%);
-  display:none;flex-direction:column;align-items:center;justify-content:center;gap:24px;
-}
-.wait-title{font-size:24px;font-weight:700;letter-spacing:4px;color:var(--tan);text-transform:uppercase;}
-.room-code-box{
-  background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:4px;
-  padding:24px 48px;text-align:center;
-}
+/* WAITING */
+#waiting{position:fixed;inset:0;z-index:190;background:radial-gradient(ellipse at center,#2a2a18 0%,#0e0e08 100%);display:none;flex-direction:column;align-items:center;justify-content:center;gap:22px;}
+.wait-title{font-size:22px;font-weight:700;letter-spacing:4px;color:var(--tan);text-transform:uppercase;}
+.room-code-box{background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:4px;padding:22px 48px;text-align:center;}
 .room-code-box .label{font-size:11px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:8px;}
 .room-code-box .code{font-family:'Share Tech Mono',monospace;font-size:40px;color:var(--tan);letter-spacing:8px;}
-.players-waiting{display:flex;gap:24px;}
-.player-slot{
-  background:rgba(255,255,255,0.03);border:1px solid var(--ui-border);border-radius:4px;
-  padding:14px 24px;text-align:center;width:140px;
-}
+.players-waiting{display:flex;gap:20px;}
+.player-slot{background:rgba(255,255,255,0.03);border:1px solid var(--ui-border);border-radius:4px;padding:14px 24px;text-align:center;width:140px;}
 .player-slot .slot-label{font-size:11px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:6px;}
 .player-slot .slot-name{font-size:16px;font-weight:600;color:var(--white);}
 .player-slot.empty .slot-name{color:var(--dim);font-size:13px;animation:blink 1.2s infinite;}
 .player-slot.ready .slot-name{color:#7ac87a;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .wait-hint{font-size:12px;letter-spacing:1px;color:var(--dim);}
-#cancelBtn{
-  background:transparent;border:1px solid rgba(200,100,100,0.3);border-radius:3px;
-  padding:8px 24px;font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--red);
-  cursor:pointer;letter-spacing:2px;transition:all .15s;
-}
-#cancelBtn:hover{background:rgba(200,100,100,0.1);}
+#cancelBtn{background:transparent;border:1px solid rgba(224,82,82,0.3);border-radius:3px;padding:8px 24px;font-family:'Rajdhani',sans-serif;font-size:13px;color:var(--red);cursor:pointer;letter-spacing:2px;transition:all .15s;}
+#cancelBtn:hover{background:rgba(224,82,82,0.1);}
 
-/* ── HUD ── */
+/* HUD */
 #hud{position:fixed;inset:0;pointer-events:none;display:none;}
-
-/* health/ammo bars */
 .hud-bottom{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;}
 .hud-hp-wrap{display:flex;align-items:center;gap:8px;}
-.hud-hp-icon{font-size:18px;}
 .hud-hp-bar-bg{width:260px;height:10px;background:rgba(0,0,0,0.5);border-radius:2px;border:1px solid rgba(255,255,255,0.1);}
 .hud-hp-bar{height:100%;border-radius:2px;transition:width .1s;background:linear-gradient(90deg,#e05252,#e87a7a);}
-.hud-weapon-box{
-  background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:3px;
-  padding:6px 16px;display:flex;align-items:center;gap:12px;
-}
-.hud-weapon-name{font-size:18px;font-weight:700;color:var(--white);letter-spacing:2px;}
-.hud-ammo{font-family:'Share Tech Mono',monospace;font-size:22px;color:var(--tan);}
-.hud-ammo span{font-size:14px;color:var(--dim);}
+.hud-weapon-box{background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:3px;padding:6px 16px;display:flex;align-items:center;gap:12px;}
+.hud-weapon-name{font-size:17px;font-weight:700;color:var(--white);letter-spacing:2px;}
+.hud-ammo{font-family:'Share Tech Mono',monospace;font-size:21px;color:var(--tan);}
+.hud-ammo span{font-size:13px;color:var(--dim);}
 .hud-reload{font-size:11px;letter-spacing:2px;color:var(--tan);animation:blink .6s infinite;}
-
-/* enemy marker */
-.hud-enemy{
-  position:absolute;top:16px;right:16px;
-  background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:3px;
-  padding:8px 14px;
-}
+.hud-enemy{position:absolute;top:16px;right:16px;background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:3px;padding:8px 14px;}
 .hud-enemy-name{font-size:12px;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:4px;}
 .hud-enemy-hp-bg{width:140px;height:6px;background:rgba(0,0,0,0.5);border-radius:1px;}
 .hud-enemy-hp{height:100%;border-radius:1px;background:var(--red);transition:width .1s;}
-
-/* kills / zone */
 .hud-top-left{position:absolute;top:16px;left:16px;display:flex;flex-direction:column;gap:6px;}
-.hud-kills{
-  background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:3px;
-  padding:6px 14px;font-size:13px;color:var(--tan);letter-spacing:1px;
-}
-.hud-zone{
-  background:var(--ui-bg);border:1px solid rgba(100,180,255,0.35);border-radius:3px;
-  padding:6px 14px;font-size:12px;color:#88c0f0;letter-spacing:1px;
-}
-
-/* kill feed */
+.hud-kills{background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:3px;padding:6px 14px;font-size:13px;color:var(--tan);letter-spacing:1px;}
+.hud-zone{background:var(--ui-bg);border:1px solid rgba(100,180,255,0.3);border-radius:3px;padding:6px 14px;font-size:12px;color:#88c0f0;letter-spacing:1px;}
 #killfeed{position:absolute;top:50px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:4px;align-items:center;}
-.kf-entry{
-  background:rgba(0,0,0,0.7);border:1px solid rgba(200,184,122,0.2);border-radius:3px;
-  padding:4px 14px;font-size:13px;color:var(--white);letter-spacing:1px;
-  animation:kfIn .2s ease;
-}
+.kf-entry{background:rgba(0,0,0,0.7);border:1px solid rgba(200,184,122,0.2);border-radius:3px;padding:4px 14px;font-size:13px;color:var(--white);letter-spacing:1px;animation:kfIn .2s ease;}
 @keyframes kfIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
-
-/* minimap */
 #minimap-canvas{position:absolute;top:16px;left:50%;transform:translateX(-50%);border:1px solid var(--ui-border);border-radius:3px;}
 
-/* winner screen */
-#winner{
-  position:fixed;inset:0;z-index:300;
-  background:rgba(0,0,0,0.9);
-  display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-}
-#winner-title{font-size:64px;font-weight:700;letter-spacing:6px;text-transform:uppercase;text-shadow:0 0 40px currentColor;}
-#winner-sub{font-size:16px;letter-spacing:3px;color:var(--dim);}
-#winner-stats{
-  background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:4px;
-  padding:20px 48px;text-align:center;
-  font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--white);line-height:2.2;
-}
-.winner-btns{display:flex;gap:12px;margin-top:8px;}
-.winner-btns button{
-  background:var(--tan2);border:none;border-radius:3px;padding:12px 32px;
-  font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;
-  text-transform:uppercase;color:#1a1208;cursor:pointer;transition:all .15s;
-}
+/* WINNER */
+#winner{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;}
+#winner-title{font-size:60px;font-weight:700;letter-spacing:6px;text-transform:uppercase;text-shadow:0 0 40px currentColor;}
+#winner-sub{font-size:15px;letter-spacing:3px;color:var(--dim);}
+#winner-stats{background:var(--ui-bg);border:1px solid var(--ui-border);border-radius:4px;padding:18px 48px;text-align:center;font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--white);line-height:2.2;}
+.winner-btns{display:flex;gap:12px;margin-top:6px;}
+.winner-btns button{background:var(--tan2);border:none;border-radius:3px;padding:12px 32px;font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#1a1208;cursor:pointer;transition:all .15s;}
 .winner-btns button:hover{background:var(--tan);}
 .winner-btns .btn-outline{background:transparent;border:1px solid var(--ui-border);color:var(--dim);}
 .winner-btns .btn-outline:hover{background:rgba(255,255,255,0.05);color:var(--white);}
-
-/* ping */
-#ping{position:absolute;bottom:16px;right:16px;font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--dim);}
 </style>
 </head>
 <body>
-
 <canvas id="gameCanvas"></canvas>
 
 <!-- LOBBY -->
@@ -197,40 +107,30 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Rajdhan
       <label>닉네임</label>
       <input id="nameInput" type="text" placeholder="플레이어 이름" maxlength="12" value="Player"/>
     </div>
-    <button class="btn-primary" id="quickJoinBtn">빠른 입장</button>
+    <button class="btn-primary" id="quickJoinBtn">⚡ 빠른 입장</button>
     <div class="divider"><hr><span>또는</span><hr></div>
     <div class="room-row">
-      <div class="input-row" style="flex:1;margin:0">
-        <label>방 코드</label>
-        <input id="roomInput" type="text" placeholder="ABCD" maxlength="6" style="text-transform:uppercase;font-family:'Share Tech Mono',monospace;letter-spacing:4px;"/>
-      </div>
+      <div class="input-row"><label>방 코드</label><input id="roomInput" type="text" placeholder="ABCD" maxlength="6" style="text-transform:uppercase;font-family:'Share Tech Mono',monospace;letter-spacing:4px;"/></div>
     </div>
-    <div style="display:flex;gap:8px;margin-top:8px;">
-      <button class="btn-secondary" id="createRoomBtn" style="flex:1">방 만들기</button>
-      <button class="btn-secondary" id="joinRoomBtn" style="flex:1">방 참가</button>
+    <div class="btn-row">
+      <button class="btn-secondary" id="createRoomBtn">방 만들기</button>
+      <button class="btn-secondary" id="joinRoomBtn">방 참가</button>
     </div>
     <div id="status-msg"></div>
   </div>
 </div>
 
-<!-- WAITING ROOM -->
+<!-- WAITING -->
 <div id="waiting">
   <div class="wait-title">대기 중...</div>
   <div class="room-code-box">
-    <div class="label">방 코드</div>
+    <div class="label">방 코드 — 친구에게 공유하세요</div>
     <div class="code" id="waitRoomCode">—</div>
   </div>
   <div class="players-waiting">
-    <div class="player-slot" id="slot1">
-      <div class="slot-label">플레이어 1</div>
-      <div class="slot-name">—</div>
-    </div>
-    <div class="player-slot empty" id="slot2">
-      <div class="slot-label">플레이어 2</div>
-      <div class="slot-name">대기 중...</div>
-    </div>
+    <div class="player-slot" id="slot1"><div class="slot-label">플레이어 1</div><div class="slot-name">—</div></div>
+    <div class="player-slot empty" id="slot2"><div class="slot-label">플레이어 2</div><div class="slot-name">대기 중...</div></div>
   </div>
-  <div class="wait-hint">친구에게 방 코드를 공유하세요</div>
   <button id="cancelBtn">취소</button>
 </div>
 
@@ -241,15 +141,15 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Rajdhan
     <div class="hud-kills" id="hud-kills">💀 킬: 0</div>
     <div class="hud-zone" id="hud-zone">🔵 안전 구역</div>
   </div>
-  <div class="hud-enemy" id="hud-enemy">
+  <div class="hud-enemy">
     <div class="hud-enemy-name" id="enemy-name">적</div>
-    <div class="hud-enemy-hp-bg"><div class="hud-enemy-hp" id="enemy-hp-bar"></div></div>
+    <div class="hud-enemy-hp-bg"><div class="hud-enemy-hp" id="enemy-hp-bar" style="width:100%"></div></div>
   </div>
   <div id="killfeed"></div>
   <div class="hud-bottom">
     <div class="hud-hp-wrap">
-      <span class="hud-hp-icon">❤️</span>
-      <div class="hud-hp-bar-bg"><div class="hud-hp-bar" id="my-hp-bar"></div></div>
+      <span style="font-size:18px">❤️</span>
+      <div class="hud-hp-bar-bg"><div class="hud-hp-bar" id="my-hp-bar" style="width:100%"></div></div>
       <span id="my-hp-num" style="font-family:'Share Tech Mono',monospace;font-size:13px;color:var(--dim);margin-left:6px;">100</span>
     </div>
     <div class="hud-weapon-box">
@@ -258,7 +158,6 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Rajdhan
       <span class="hud-reload" id="hud-reload" style="display:none">RELOADING</span>
     </div>
   </div>
-  <div id="ping">●  --ms</div>
 </div>
 
 <!-- WINNER -->
@@ -272,11 +171,12 @@ body{display:flex;align-items:center;justify-content:center;font-family:'Rajdhan
   </div>
 </div>
 
-<script type="module">
-import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getDatabase,ref,set,get,onValue,off,update,remove,push,serverTimestamp,onDisconnect}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-const firebaseConfig={
+<!-- Firebase via CDN scripts (no module, works with file://) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+// ── Firebase init ──────────────────────────────────────────
+firebase.initializeApp({
   apiKey:"AIzaSyCkXPCOriUGTMapGKmRM68bPc9ZwLdLioA",
   authDomain:"lumberjack-leaderboard.firebaseapp.com",
   projectId:"lumberjack-leaderboard",
@@ -284,93 +184,91 @@ const firebaseConfig={
   messagingSenderId:"50215906757",
   appId:"1:50215906757:web:714f0cfc3910851b46efac",
   databaseURL:"https://lumberjack-leaderboard-default-rtdb.firebaseio.com"
-};
-const app=initializeApp(firebaseConfig);
-const db=getDatabase(app);
+});
+const db = firebase.database();
 
-// ─── CANVAS SETUP ───────────────────────────────────────────
-const canvas=document.getElementById('gameCanvas');
-const ctx=canvas.getContext('2d');
-const mmCanvas=document.getElementById('minimap-canvas');
-const mmCtx=mmCanvas.getContext('2d');
-const MAP={w:2400,h:2400};
-function resize(){
-  canvas.width=window.innerWidth;
-  canvas.height=window.innerHeight;
-}
-resize();
-window.addEventListener('resize',resize);
+// ── Canvas ─────────────────────────────────────────────────
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const mmCanvas = document.getElementById('minimap-canvas');
+const mmCtx = mmCanvas.getContext('2d');
+const MAP = {w:2400, h:2400};
+function resize(){ canvas.width=window.innerWidth; canvas.height=window.innerHeight; }
+resize(); window.addEventListener('resize', resize);
 
-// ─── STATE ──────────────────────────────────────────────────
-let myId=null,myRole=null,roomCode=null,gameActive=false,myName='Player',enemyName='적';
-let myPlayer=null,enemyPlayer=null;
-let bullets=[],particles=[],pickups=[],obstacles=[];
+// ── State ──────────────────────────────────────────────────
+let myId=null, myRole=null, roomCode=null, gameActive=false;
+let myName='Player', enemyName='적';
+let myPlayer=null, enemyPlayer=null;
+let bullets=[], particles=[], pickups=[], obstacles=[];
 let zone={cx:MAP.w/2,cy:MAP.h/2,r:MAP.w*0.47,targetR:MAP.w*0.47,phase:0,timer:0,duration:700,damage:0.3};
 let cam={x:0,y:0};
-let keys={},mouseBtn=false,mouseWorld={x:0,y:0};
-let myKills=0,gameStartTime=0;
-let animId=null;
-let pingStart=0,pingMs=0;
+let keys={}, mouseBtn=false, mouseWorld={x:0,y:0};
+let myKills=0, gameStartTime=0, animId=null;
+let reloading=false, reloadTimer=0, shootCooldown=0;
+let winShown=false;
+const TILE_SIZE=80;
+let tiles=[];
 
-// ─── INPUT ──────────────────────────────────────────────────
-document.addEventListener('keydown',e=>{
+// ── Input ──────────────────────────────────────────────────
+document.addEventListener('keydown', e=>{
   keys[e.code]=true;
   if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
-  if(e.code==='KeyR'&&gameActive) startReload();
+  if(e.code==='KeyR' && gameActive) startReload();
 });
-document.addEventListener('keyup',e=>keys[e.code]=false);
-canvas.addEventListener('mousemove',e=>{
+document.addEventListener('keyup', e=>{ keys[e.code]=false; });
+canvas.addEventListener('mousemove', e=>{
   const r=canvas.getBoundingClientRect();
-  const sx=e.clientX-r.left, sy=e.clientY-r.top;
-  mouseWorld={x:sx+cam.x,y:sy+cam.y};
+  mouseWorld={x:e.clientX-r.left+cam.x, y:e.clientY-r.top+cam.y};
 });
-canvas.addEventListener('mousedown',e=>{if(e.button===0){mouseBtn=true;}});
-canvas.addEventListener('mouseup',e=>{if(e.button===0){mouseBtn=false;}});
-canvas.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('mousedown', e=>{ if(e.button===0) mouseBtn=true; });
+canvas.addEventListener('mouseup',   e=>{ if(e.button===0) mouseBtn=false; });
+canvas.addEventListener('contextmenu', e=>e.preventDefault());
 
-// ─── HELPERS ────────────────────────────────────────────────
-function randCode(){return Math.random().toString(36).substr(2,4).toUpperCase();}
-function uid(){return Math.random().toString(36).substr(2,9);}
-function setStatus(msg,cls=''){
+// ── Helpers ────────────────────────────────────────────────
+function randCode(){ return Math.random().toString(36).substr(2,4).toUpperCase(); }
+function uid(){ return Math.random().toString(36).substr(2,9); }
+function setStatus(msg, cls=''){
   const el=document.getElementById('status-msg');
   el.textContent=msg; el.className=cls;
 }
+function setBtn(disabled){
+  ['quickJoinBtn','createRoomBtn','joinRoomBtn'].forEach(id=>{
+    document.getElementById(id).disabled=disabled;
+  });
+}
 function circleRect(cx,cy,cr,rx,ry,rw,rh){
-  const nx=Math.max(rx,Math.min(cx,rx+rw)),ny=Math.max(ry,Math.min(cy,ry+rh));
+  const nx=Math.max(rx,Math.min(cx,rx+rw)), ny=Math.max(ry,Math.min(cy,ry+rh));
   return Math.hypot(cx-nx,cy-ny)<cr;
 }
 function mkPlayer(x,y,name,role){
-  return{x,y,hp:100,maxHp:100,ammo:30,maxAmmo:30,reloading:0,shootCooldown:0,
-    angle:0,alive:true,kills:0,name,role,vx:0,vy:0,invuln:0};
+  return{x,y,hp:100,maxHp:100,ammo:30,maxAmmo:30,angle:0,alive:true,kills:0,name,role};
 }
 function pushParticle(x,y,color,n=8,spd=3){
   for(let i=0;i<n;i++){
-    const a=Math.random()*Math.PI*2,s=spd*(0.4+Math.random());
+    const a=Math.random()*Math.PI*2, s=spd*(0.4+Math.random());
     particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,color,r:2+Math.random()*3});
   }
 }
 function addKillFeed(msg){
   const kf=document.getElementById('killfeed');
-  const el=document.createElement('div');el.className='kf-entry';el.textContent=msg;
-  kf.appendChild(el);setTimeout(()=>el.remove(),3000);
+  const el=document.createElement('div'); el.className='kf-entry'; el.textContent=msg;
+  kf.appendChild(el); setTimeout(()=>el.remove(), 3000);
 }
 
-// ─── MAP GENERATION (seeded so both clients match) ──────────
-const TILE_SIZE=80;let tiles=[];
+// ── Map gen (seeded — both clients get same map) ───────────
 function genMap(seed){
   let r=seed;
-  function rand(){r=(r*1664525+1013904223)&0xffffffff;return(r>>>0)/0xffffffff;}
+  function rand(){ r=(r*1664525+1013904223)&0xffffffff; return (r>>>0)/0xffffffff; }
   tiles=[];
   for(let y=0;y<MAP.h/TILE_SIZE;y++) for(let x=0;x<MAP.w/TILE_SIZE;x++){
-    const v=rand();
-    tiles.push({x:x*TILE_SIZE,y:y*TILE_SIZE,t:v<0.12?2:v<0.28?1:0});
+    const v=rand(); tiles.push({x:x*TILE_SIZE,y:y*TILE_SIZE,t:v<0.12?2:v<0.28?1:0});
   }
   obstacles=[];
   const types=['rock','tree','crate','wall'];
   for(let i=0;i<130;i++){
-    const t=types[Math.floor(rand()*4)];
-    let ow,oh;
-    if(t==='wall'){ow=rand()>0.5?90:14;oh=rand()>0.5?14:90;}
+    const t=types[Math.floor(rand()*4)]; let ow,oh;
+    if(t==='wall'){ow=rand()>0.5?90:14; oh=rand()>0.5?14:90;}
     else if(t==='crate'){ow=oh=36;}
     else{ow=oh=26+rand()*18;}
     const ox=100+rand()*(MAP.w-200), oy=100+rand()*(MAP.h-200);
@@ -383,91 +281,105 @@ function genMap(seed){
   }
 }
 
-// ─── FIREBASE ROOM LOGIC ────────────────────────────────────
-async function createRoom(name){
-  myId=uid(); myName=name; myRole='p1';
-  roomCode=randCode();
-  const roomRef=ref(db,`surviv_rooms/${roomCode}`);
-  const seed=Math.floor(Math.random()*999999);
-  await set(roomRef,{
-    seed,status:'waiting',
-    p1:{name,hp:100,x:300,y:MAP.h/2,angle:0,ammo:30,alive:true,kills:0,shooting:false},
-    p2:null,created:serverTimestamp()
+// ── Firebase room logic ────────────────────────────────────
+function createRoom(name){
+  return new Promise((resolve,reject)=>{
+    myId=uid(); myName=name; myRole='p1';
+    roomCode=randCode();
+    const seed=Math.floor(Math.random()*999999);
+    const roomRef=db.ref('surviv_rooms/'+roomCode);
+    roomRef.set({
+      seed, status:'waiting',
+      p1:{name,hp:100,x:300,y:MAP.h/2,angle:0,ammo:30,alive:true,kills:0,shooting:false},
+      p2:null
+    }).then(()=>{
+      roomRef.onDisconnect().remove();
+      document.getElementById('waitRoomCode').textContent=roomCode;
+      const s1=document.getElementById('slot1');
+      s1.querySelector('.slot-name').textContent=name;
+      s1.classList.remove('empty'); s1.classList.add('ready');
+      showScreen('waiting');
+      listenRoom();
+      resolve();
+    }).catch(reject);
   });
-  onDisconnect(roomRef).remove();
-  document.getElementById('waitRoomCode').textContent=roomCode;
-  document.getElementById('slot1').querySelector('.slot-name').textContent=name;
-  document.getElementById('slot1').classList.remove('empty');
-  document.getElementById('slot1').classList.add('ready');
-  showScreen('waiting');
-  listenRoom();
 }
 
-async function joinRoom(name,code){
-  myId=uid(); myName=name; myRole='p2';
-  roomCode=code.toUpperCase();
-  const roomRef=ref(db,`surviv_rooms/${roomCode}`);
-  const snap=await get(roomRef);
-  if(!snap.exists()){setStatus('방을 찾을 수 없습니다','err');return;}
-  const data=snap.val();
-  if(data.status!=='waiting'||data.p2){setStatus('이미 진행 중인 방입니다','err');return;}
-  await update(roomRef,{'p2':{name,hp:100,x:MAP.w-300,y:MAP.h/2,angle:0,ammo:30,alive:true,kills:0,shooting:false},'status':'ready'});
-  document.getElementById('waitRoomCode').textContent=roomCode;
-  document.getElementById('slot1').querySelector('.slot-name').textContent=data.p1.name;
-  document.getElementById('slot1').classList.remove('empty');document.getElementById('slot1').classList.add('ready');
-  document.getElementById('slot2').querySelector('.slot-name').textContent=name;
-  document.getElementById('slot2').classList.remove('empty');document.getElementById('slot2').classList.add('ready');
-  showScreen('waiting');
-  listenRoom();
+function joinRoom(name, code){
+  return new Promise((resolve,reject)=>{
+    myId=uid(); myName=name; myRole='p2';
+    roomCode=code.toUpperCase();
+    const roomRef=db.ref('surviv_rooms/'+roomCode);
+    roomRef.once('value').then(snap=>{
+      if(!snap.exists()) return reject(new Error('방을 찾을 수 없습니다'));
+      const data=snap.val();
+      if(data.status!=='waiting'||data.p2) return reject(new Error('이미 진행 중인 방입니다'));
+      return roomRef.update({
+        p2:{name,hp:100,x:MAP.w-300,y:MAP.h/2,angle:0,ammo:30,alive:true,kills:0,shooting:false},
+        status:'ready'
+      }).then(()=>{
+        document.getElementById('waitRoomCode').textContent=roomCode;
+        const s1=document.getElementById('slot1'), s2=document.getElementById('slot2');
+        s1.querySelector('.slot-name').textContent=data.p1.name;
+        s1.classList.remove('empty'); s1.classList.add('ready');
+        s2.querySelector('.slot-name').textContent=name;
+        s2.classList.remove('empty'); s2.classList.add('ready');
+        showScreen('waiting');
+        listenRoom();
+        resolve();
+      });
+    }).catch(reject);
+  });
 }
 
-async function quickJoin(name){
-  myName=name;
-  const roomsRef=ref(db,'surviv_rooms');
-  const snap=await get(roomsRef);
-  let found=null;
-  if(snap.exists()){
-    snap.forEach(child=>{
-      const v=child.val();
-      if(v.status==='waiting'&&!v.p2&&!found) found=child.key;
-    });
-  }
-  if(found){await joinRoom(name,found);}
-  else{await createRoom(name);}
+function quickJoin(name){
+  return new Promise((resolve,reject)=>{
+    db.ref('surviv_rooms').once('value').then(snap=>{
+      let found=null;
+      if(snap.exists()) snap.forEach(child=>{
+        const v=child.val();
+        if(v.status==='waiting' && !v.p2 && !found) found=child.key;
+      });
+      if(found) joinRoom(name, found).then(resolve).catch(reject);
+      else createRoom(name).then(resolve).catch(reject);
+    }).catch(reject);
+  });
 }
 
-let roomListener=null;
+let roomRef=null;
 function listenRoom(){
-  const roomRef=ref(db,`surviv_rooms/${roomCode}`);
-  roomListener=onValue(roomRef,snap=>{
+  roomRef=db.ref('surviv_rooms/'+roomCode);
+  roomRef.on('value', snap=>{
     if(!snap.exists()) return;
     const data=snap.val();
-    if(data.status==='ready'&&!gameActive){
-      // both joined — start!
+
+    // Both players joined → start
+    if(data.status==='ready' && !gameActive){
       genMap(data.seed);
-      const p1d=data.p1,p2d=data.p2;
       if(myRole==='p1'){
         myPlayer=mkPlayer(300,MAP.h/2,myName,'p1');
-        enemyPlayer=mkPlayer(MAP.w-300,MAP.h/2,p2d.name,'p2');
-        enemyName=p2d.name;
-        document.getElementById('slot2').querySelector('.slot-name').textContent=p2d.name;
-        document.getElementById('slot2').classList.remove('empty');document.getElementById('slot2').classList.add('ready');
+        enemyPlayer=mkPlayer(MAP.w-300,MAP.h/2,data.p2.name,'p2');
+        enemyName=data.p2.name;
+        const s2=document.getElementById('slot2');
+        s2.querySelector('.slot-name').textContent=data.p2.name;
+        s2.classList.remove('empty'); s2.classList.add('ready');
       } else {
         myPlayer=mkPlayer(MAP.w-300,MAP.h/2,myName,'p2');
-        enemyPlayer=mkPlayer(300,MAP.h/2,p1d.name,'p1');
-        enemyName=p1d.name;
+        enemyPlayer=mkPlayer(300,MAP.h/2,data.p1.name,'p1');
+        enemyName=data.p1.name;
       }
-      setTimeout(()=>startGame(data.seed),800);
+      setTimeout(()=>startGame(), 800);
     }
-    if(gameActive&&data.status==='playing'){
-      const enemyKey=myRole==='p1'?'p2':'p1';
-      const ed=data[enemyKey];
-      if(ed){
-        if(enemyPlayer){
-          enemyPlayer.x=ed.x; enemyPlayer.y=ed.y; enemyPlayer.angle=ed.angle;
-          enemyPlayer.hp=ed.hp; enemyPlayer.alive=ed.alive; enemyPlayer.ammo=ed.ammo;
-          if(ed.shooting) handleRemoteShot(ed);
-        }
+
+    // Game running → sync enemy
+    if(gameActive && (data.status==='playing'||data.status==='ready')){
+      const ek=myRole==='p1'?'p2':'p1';
+      const ed=data[ek];
+      if(ed && enemyPlayer){
+        enemyPlayer.x=ed.x; enemyPlayer.y=ed.y;
+        enemyPlayer.angle=ed.angle; enemyPlayer.hp=ed.hp;
+        enemyPlayer.alive=ed.alive; enemyPlayer.ammo=ed.ammo;
+        if(ed.shooting && ed.shotAngle!=null) handleRemoteShot(ed);
       }
       if(data.pickups) syncPickups(data.pickups);
       if(data.zone) syncZone(data.zone);
@@ -479,78 +391,76 @@ function syncPickups(pdata){
   for(const pk of pickups){ if(pdata[pk.id]===false) pk.active=false; }
 }
 function syncZone(zdata){
-  if(zdata){zone.cx=zdata.cx;zone.cy=zdata.cy;zone.targetR=zdata.targetR;zone.phase=zdata.phase;}
+  zone.cx=zdata.cx; zone.cy=zdata.cy;
+  zone.targetR=zdata.targetR; zone.phase=zdata.phase;
+  if(zdata.r) zone.r=zdata.r;
 }
 
-// ─── GAME START ─────────────────────────────────────────────
-function startGame(seed){
+// ── Game start ─────────────────────────────────────────────
+function startGame(){
   showScreen('hud');
   document.getElementById('enemy-name').textContent=enemyName;
-  gameActive=true;
-  gameStartTime=Date.now();
+  gameActive=true; gameStartTime=Date.now(); winShown=false;
   if(myRole==='p1'){
-    // p1 manages zone + initial state
-    update(ref(db,`surviv_rooms/${roomCode}`),{status:'playing',
-      zone:{cx:zone.cx,cy:zone.cy,r:zone.r,targetR:zone.targetR,phase:0}});
+    db.ref('surviv_rooms/'+roomCode).update({
+      status:'playing',
+      zone:{cx:Math.round(zone.cx),cy:Math.round(zone.cy),
+            r:Math.round(zone.r),targetR:Math.round(zone.targetR),phase:0}
+    });
   }
   loop();
 }
 
-// ─── NETWORK SEND ────────────────────────────────────────────
+// ── Send state ─────────────────────────────────────────────
 let lastSend=0;
-function sendState(shooting=false,shotAngle=null){
+function sendState(shooting=false, shotAngle=null){
   const now=Date.now();
-  if(now-lastSend<40&&!shooting) return; // ~25fps send rate
+  if(now-lastSend<40 && !shooting) return;
   lastSend=now;
-  const payload={
-    x:Math.round(myPlayer.x),y:Math.round(myPlayer.y),
+  const p={
+    x:Math.round(myPlayer.x), y:Math.round(myPlayer.y),
     angle:+myPlayer.angle.toFixed(3),
-    hp:Math.round(myPlayer.hp),alive:myPlayer.alive,
-    ammo:myPlayer.ammo,kills:myPlayer.kills,
-    shooting:false
+    hp:Math.round(myPlayer.hp), alive:myPlayer.alive,
+    ammo:myPlayer.ammo, kills:myPlayer.kills,
+    shooting:false, shotAngle:null
   };
-  if(shooting&&shotAngle!==null){payload.shooting=true;payload.shotAngle=+shotAngle.toFixed(4);}
-  update(ref(db,`surviv_rooms/${roomCode}/${myRole}`),payload);
+  if(shooting && shotAngle!=null){ p.shooting=true; p.shotAngle=+shotAngle.toFixed(4); }
+  db.ref('surviv_rooms/'+roomCode+'/'+myRole).update(p);
   if(myRole==='p1') manageZone();
 }
 
-let lastShot={angle:-999,time:0};
+// ── Remote shot ────────────────────────────────────────────
+let lastRemoteShotAngle=null, lastRemoteShotTime=0;
 function handleRemoteShot(ed){
-  if(!ed.shooting||!ed.shotAngle) return;
   const now=Date.now();
-  const key=ed.shotAngle+':'+ed.x+':'+ed.y;
-  if(lastShot.angle===ed.shotAngle&&now-lastShot.time<200) return;
-  lastShot={angle:ed.shotAngle,time:now};
-  const spd=18,dx=Math.cos(ed.shotAngle)*spd,dy=Math.sin(ed.shotAngle)*spd;
-  const spread=(Math.random()-0.5)*0.05;
-  const a=ed.shotAngle+spread;
-  bullets.push({x:ed.x,y:ed.y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,
-    owner:'enemy',life:1,damage:18,r:4});
+  if(ed.shotAngle===lastRemoteShotAngle && now-lastRemoteShotTime<180) return;
+  lastRemoteShotAngle=ed.shotAngle; lastRemoteShotTime=now;
+  const a=ed.shotAngle+(Math.random()-0.5)*0.05;
+  bullets.push({x:ed.x,y:ed.y,vx:Math.cos(a)*18,vy:Math.sin(a)*18,owner:'enemy',life:1,damage:18,r:4});
 }
 
-// ─── ZONE MANAGEMENT (p1 only) ───────────────────────────────
+// ── Zone (p1 manages) ──────────────────────────────────────
 let zoneFrame=0;
 function manageZone(){
   zoneFrame++;
   if(zoneFrame%4!==0) return;
   zone.timer++;
-  if(zone.r>zone.targetR) zone.r=Math.max(zone.targetR,zone.r-0.5);
+  if(zone.r>zone.targetR) zone.r=Math.max(zone.targetR, zone.r-0.5);
   if(zone.timer>=zone.duration){
-    zone.phase++;zone.timer=0;
-    zone.targetR=Math.max(80,zone.r*0.55);
+    zone.phase++; zone.timer=0;
+    zone.targetR=Math.max(80, zone.r*0.55);
     zone.cx=MAP.w*0.2+Math.random()*MAP.w*0.6;
     zone.cy=MAP.h*0.2+Math.random()*MAP.h*0.6;
-    zone.duration=Math.max(300,zone.duration-80);
-    update(ref(db,`surviv_rooms/${roomCode}/zone`),
-      {cx:Math.round(zone.cx),cy:Math.round(zone.cy),r:Math.round(zone.r),targetR:Math.round(zone.targetR),phase:zone.phase});
+    zone.duration=Math.max(300, zone.duration-80);
+    db.ref('surviv_rooms/'+roomCode+'/zone').set({
+      cx:Math.round(zone.cx),cy:Math.round(zone.cy),
+      r:Math.round(zone.r),targetR:Math.round(zone.targetR),phase:zone.phase
+    });
   }
 }
 
-// ─── PLAYER UPDATE ───────────────────────────────────────────
-const SPEED=3.4,PR=14;
-let reloadTimer=0,reloading=false,shootCooldown=0;
-let lastShootTime=0;
-
+// ── Player update ──────────────────────────────────────────
+const SPEED=3.4, PR=14;
 function startReload(){
   if(reloading||myPlayer.ammo>=myPlayer.maxAmmo) return;
   reloading=true; reloadTimer=0;
@@ -560,10 +470,10 @@ function startReload(){
 function updateMyPlayer(){
   if(!myPlayer||!myPlayer.alive) return;
   let mvx=0,mvy=0;
-  if(keys['KeyW']||keys['ArrowUp']) mvy=-SPEED;
-  if(keys['KeyS']||keys['ArrowDown']) mvy=SPEED;
-  if(keys['KeyA']||keys['ArrowLeft']) mvx=-SPEED;
-  if(keys['KeyD']||keys['ArrowRight']) mvx=SPEED;
+  if(keys['KeyW']||keys['ArrowUp'])    mvy=-SPEED;
+  if(keys['KeyS']||keys['ArrowDown'])  mvy= SPEED;
+  if(keys['KeyA']||keys['ArrowLeft'])  mvx=-SPEED;
+  if(keys['KeyD']||keys['ArrowRight']) mvx= SPEED;
   if(mvx&&mvy){mvx*=0.707;mvy*=0.707;}
 
   let nx=Math.max(PR,Math.min(MAP.w-PR,myPlayer.x+mvx));
@@ -577,60 +487,62 @@ function updateMyPlayer(){
     }
   }
   myPlayer.x=nx; myPlayer.y=ny;
-  myPlayer.angle=Math.atan2(mouseWorld.y-myPlayer.y,mouseWorld.x-myPlayer.x);
+  myPlayer.angle=Math.atan2(mouseWorld.y-myPlayer.y, mouseWorld.x-myPlayer.x);
 
-  // zone damage
+  // Zone damage
   if(Math.hypot(myPlayer.x-zone.cx,myPlayer.y-zone.cy)>zone.r){
     myPlayer.hp-=zone.damage;
     if(Math.random()<0.08) pushParticle(myPlayer.x,myPlayer.y,'#5080ff',2,1);
   }
 
-  // pickup
+  // Pickups
   for(const pk of pickups){
     if(!pk.active) continue;
     if(Math.hypot(myPlayer.x-pk.x,myPlayer.y-pk.y)<22){
       if(pk.type==='ammo'&&myPlayer.ammo<myPlayer.maxAmmo){
-        myPlayer.ammo=Math.min(myPlayer.maxAmmo,myPlayer.ammo+15);pk.active=false;
-        update(ref(db,`surviv_rooms/${roomCode}/pickups`),{[pk.id]:false});
+        myPlayer.ammo=Math.min(myPlayer.maxAmmo,myPlayer.ammo+15); pk.active=false;
+        db.ref('surviv_rooms/'+roomCode+'/pickups/'+pk.id).set(false);
         pushParticle(pk.x,pk.y,'#ffee88',8,3);
       }
       if(pk.type==='medkit'&&myPlayer.hp<myPlayer.maxHp){
-        myPlayer.hp=Math.min(myPlayer.maxHp,myPlayer.hp+35);pk.active=false;
-        update(ref(db,`surviv_rooms/${roomCode}/pickups`),{[pk.id]:false});
+        myPlayer.hp=Math.min(myPlayer.maxHp,myPlayer.hp+35); pk.active=false;
+        db.ref('surviv_rooms/'+roomCode+'/pickups/'+pk.id).set(false);
         pushParticle(pk.x,pk.y,'#88d088',8,3);
       }
     }
   }
 
-  // reload
+  // Reload tick
   if(reloading){
     reloadTimer++;
-    if(reloadTimer>=70){reloading=false;myPlayer.ammo=myPlayer.maxAmmo;document.getElementById('hud-reload').style.display='none';}
+    if(reloadTimer>=70){
+      reloading=false; myPlayer.ammo=myPlayer.maxAmmo;
+      document.getElementById('hud-reload').style.display='none';
+    }
   }
   if(shootCooldown>0) shootCooldown--;
 
-  // shoot
-  const now=Date.now();
-  if(mouseBtn&&!reloading&&myPlayer.ammo>0&&shootCooldown===0&&myPlayer.alive){
+  // Shoot
+  if(mouseBtn && !reloading && myPlayer.ammo>0 && shootCooldown===0 && myPlayer.alive){
     myPlayer.ammo--;
     const angle=myPlayer.angle;
-    const spread=(Math.random()-0.5)*0.07;
-    const a=angle+spread;
+    const a=angle+(Math.random()-0.5)*0.07;
     bullets.push({x:myPlayer.x,y:myPlayer.y,vx:Math.cos(a)*18,vy:Math.sin(a)*18,
       owner:'me',life:1,damage:18,r:4});
     pushParticle(myPlayer.x,myPlayer.y,'#ffee88',4,2);
     shootCooldown=10;
-    sendState(true,angle);
+    sendState(true, angle);
     return;
   }
-  if(myPlayer.hp<=0&&myPlayer.alive){
+
+  if(myPlayer.hp<=0 && myPlayer.alive){
     myPlayer.alive=false;
     pushParticle(myPlayer.x,myPlayer.y,'#c8b87a',20,5);
   }
   sendState();
 }
 
-// ─── BULLETS ────────────────────────────────────────────────
+// ── Bullets ────────────────────────────────────────────────
 function updateBullets(){
   for(let i=bullets.length-1;i>=0;i--){
     const b=bullets[i];
@@ -638,35 +550,33 @@ function updateBullets(){
     if(b.life<=0||b.x<0||b.x>MAP.w||b.y<0||b.y>MAP.h){bullets.splice(i,1);continue;}
     let hit=false;
     for(let j=obstacles.length-1;j>=0;j--){
-      const o=obstacles[j];
-      if(o.type==='tree') continue;
+      const o=obstacles[j]; if(o.type==='tree') continue;
       if(b.x>o.x&&b.x<o.x+o.w&&b.y>o.y&&b.y<o.y+o.h){
         pushParticle(b.x,b.y,'#aaa',5,2);
-        if(o.type==='crate'){o.hp-=b.damage;if(o.hp<=0){pushParticle(o.x+o.w/2,o.y+o.h/2,'#a06030',15,4);obstacles.splice(j,1);}}
-        bullets.splice(i,1);hit=true;break;
+        if(o.type==='crate'){o.hp-=b.damage; if(o.hp<=0){pushParticle(o.x+o.w/2,o.y+o.h/2,'#a06030',15,4);obstacles.splice(j,1);}}
+        bullets.splice(i,1); hit=true; break;
       }
     }
     if(hit) continue;
-    if(b.owner==='me'&&enemyPlayer&&enemyPlayer.alive){
+    if(b.owner==='me' && enemyPlayer && enemyPlayer.alive){
       if(Math.hypot(b.x-enemyPlayer.x,b.y-enemyPlayer.y)<14){
         enemyPlayer.hp-=b.damage;
         pushParticle(enemyPlayer.x,enemyPlayer.y,'#e05252',8,4);
         bullets.splice(i,1);
-        if(enemyPlayer.hp<=0&&enemyPlayer.alive){
-          enemyPlayer.alive=false;
-          myPlayer.kills++;myKills++;
-          addKillFeed(`💀 ${myName}이(가) ${enemyName} 처치!`);
+        if(enemyPlayer.hp<=0 && enemyPlayer.alive){
+          enemyPlayer.alive=false; myPlayer.kills++; myKills++;
+          addKillFeed('💀 '+myName+'이(가) '+enemyName+' 처치!');
           pushParticle(enemyPlayer.x,enemyPlayer.y,'#e05252',25,6);
         }
         continue;
       }
     }
-    if(b.owner==='enemy'&&myPlayer&&myPlayer.alive){
+    if(b.owner==='enemy' && myPlayer && myPlayer.alive){
       if(Math.hypot(b.x-myPlayer.x,b.y-myPlayer.y)<14){
         myPlayer.hp-=b.damage;
         pushParticle(myPlayer.x,myPlayer.y,'#52a8e0',8,4);
         bullets.splice(i,1);
-        if(myPlayer.hp<=0&&myPlayer.alive){
+        if(myPlayer.hp<=0 && myPlayer.alive){
           myPlayer.alive=false;
           pushParticle(myPlayer.x,myPlayer.y,'#52a8e0',25,6);
         }
@@ -676,52 +586,51 @@ function updateBullets(){
   }
 }
 
-// ─── CAMERA ─────────────────────────────────────────────────
+// ── Camera ─────────────────────────────────────────────────
 function updateCamera(){
   if(!myPlayer) return;
-  cam.x=Math.max(0,Math.min(MAP.w-canvas.width,myPlayer.x-canvas.width/2));
-  cam.y=Math.max(0,Math.min(MAP.h-canvas.height,myPlayer.y-canvas.height/2));
+  cam.x=Math.max(0,Math.min(MAP.w-canvas.width, myPlayer.x-canvas.width/2));
+  cam.y=Math.max(0,Math.min(MAP.h-canvas.height, myPlayer.y-canvas.height/2));
 }
 
-// ─── DRAW ────────────────────────────────────────────────────
+// ── Draw ───────────────────────────────────────────────────
 const GCOLS=[['#3d7a44','#356d3c','#47895a','#305f30'],['#5a9a62','#4a9055'],['#c4a84a','#b89840']];
 function drawWorld(){
-  const W=canvas.width,H=canvas.height;
   for(const t of tiles){
-    const sx=t.x-cam.x,sy=t.y-cam.y;
-    if(sx+TILE_SIZE<0||sx>W||sy+TILE_SIZE<0||sy>H) continue;
+    const sx=t.x-cam.x, sy=t.y-cam.y;
+    if(sx+TILE_SIZE<0||sx>canvas.width||sy+TILE_SIZE<0||sy>canvas.height) continue;
     const c=GCOLS[t.t];
     ctx.fillStyle=c[((t.x/TILE_SIZE)+(t.y/TILE_SIZE))%c.length];
     ctx.fillRect(sx,sy,TILE_SIZE,TILE_SIZE);
   }
   ctx.fillStyle='rgba(0,0,0,0.07)';
-  for(let x=0;x<MAP.w;x+=TILE_SIZE) ctx.fillRect(x-cam.x,0,1,H);
-  for(let y=0;y<MAP.h;y+=TILE_SIZE) ctx.fillRect(0,y-cam.y,W,1);
+  for(let x=0;x<MAP.w;x+=TILE_SIZE) ctx.fillRect(x-cam.x,0,1,canvas.height);
+  for(let y=0;y<MAP.h;y+=TILE_SIZE) ctx.fillRect(0,y-cam.y,canvas.width,1);
 }
 
 function drawObstacles(){
   for(const o of obstacles){
-    const sx=o.x-cam.x,sy=o.y-cam.y;
+    const sx=o.x-cam.x, sy=o.y-cam.y;
     if(sx+o.w<0||sx>canvas.width||sy+o.h<0||sy>canvas.height) continue;
     if(o.type==='rock'){
-      ctx.fillStyle='#747474';ctx.beginPath();ctx.ellipse(sx+o.w/2,sy+o.h/2,o.w/2,o.h/2,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#959595';ctx.beginPath();ctx.ellipse(sx+o.w/2-4,sy+o.h/2-5,o.w/6,o.h/7,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#747474'; ctx.beginPath(); ctx.ellipse(sx+o.w/2,sy+o.h/2,o.w/2,o.h/2,0,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#959595'; ctx.beginPath(); ctx.ellipse(sx+o.w/2-4,sy+o.h/2-5,o.w/6,o.h/7,0,0,Math.PI*2); ctx.fill();
     } else if(o.type==='tree'){
-      ctx.fillStyle='#1a3d1a';ctx.beginPath();ctx.arc(sx+o.w/2,sy+o.h/2,o.w/2+5,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#2a6a2a';ctx.beginPath();ctx.arc(sx+o.w/2,sy+o.h/2,o.w/2,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#3a8a3a';ctx.beginPath();ctx.arc(sx+o.w/2-3,sy+o.h/2-4,o.w/3.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#1a3d1a'; ctx.beginPath(); ctx.arc(sx+o.w/2,sy+o.h/2,o.w/2+5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#2a6a2a'; ctx.beginPath(); ctx.arc(sx+o.w/2,sy+o.h/2,o.w/2,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#3a8a3a'; ctx.beginPath(); ctx.arc(sx+o.w/2-3,sy+o.h/2-4,o.w/3.5,0,Math.PI*2); ctx.fill();
     } else if(o.type==='crate'){
       const hp=o.hp/o.maxHp;
-      ctx.fillStyle=`rgb(${Math.floor(150-70*(1-hp))},${Math.floor(95-55*(1-hp))},45)`;
+      ctx.fillStyle='rgb('+Math.floor(150-70*(1-hp))+','+Math.floor(95-55*(1-hp))+',45)';
       ctx.fillRect(sx,sy,o.w,o.h);
-      ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=1.5;
-      ctx.beginPath();ctx.moveTo(sx+2,sy+2);ctx.lineTo(sx+o.w-2,sy+o.h-2);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(sx+o.w-2,sy+2);ctx.lineTo(sx+2,sy+o.h-2);ctx.stroke();
+      ctx.strokeStyle='rgba(0,0,0,0.35)'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(sx+2,sy+2); ctx.lineTo(sx+o.w-2,sy+o.h-2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(sx+o.w-2,sy+2); ctx.lineTo(sx+2,sy+o.h-2); ctx.stroke();
       ctx.strokeRect(sx,sy,o.w,o.h);
     } else if(o.type==='wall'){
-      ctx.fillStyle='#6a6a6a';ctx.fillRect(sx,sy,o.w,o.h);
-      ctx.strokeStyle='rgba(0,0,0,0.3)';ctx.lineWidth=1;ctx.strokeRect(sx,sy,o.w,o.h);
-      ctx.fillStyle='rgba(255,255,255,0.05)';ctx.fillRect(sx,sy,o.w,3);
+      ctx.fillStyle='#6a6a6a'; ctx.fillRect(sx,sy,o.w,o.h);
+      ctx.strokeStyle='rgba(0,0,0,0.3)'; ctx.lineWidth=1; ctx.strokeRect(sx,sy,o.w,o.h);
+      ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fillRect(sx,sy,o.w,3);
     }
   }
 }
@@ -730,78 +639,66 @@ function drawPickups(){
   const t=Date.now()*0.006;
   for(const pk of pickups){
     if(!pk.active) continue;
-    const sx=pk.x-cam.x,sy=pk.y-cam.y;
-    const bob=Math.sin(t+pk.id)*3;
-    ctx.save();ctx.translate(sx,sy+bob);
+    const sx=pk.x-cam.x, sy=pk.y-cam.y, bob=Math.sin(t+pk.id)*3;
+    ctx.save(); ctx.translate(sx,sy+bob);
     if(pk.type==='ammo'){
-      ctx.fillStyle='#e8d060';
-      ctx.shadowColor='#ffee88';ctx.shadowBlur=12;
+      ctx.fillStyle='#e8d060'; ctx.shadowColor='#ffee88'; ctx.shadowBlur=12;
       ctx.fillRect(-7,-7,14,14);
-      ctx.fillStyle='#1a1208';ctx.font='bold 9px monospace';ctx.textAlign='center';ctx.fillText('A',0,3);
+      ctx.fillStyle='#1a1208'; ctx.font='bold 9px monospace'; ctx.textAlign='center'; ctx.fillText('A',0,3);
     } else {
-      ctx.fillStyle='#5cb85c';
-      ctx.shadowColor='#81c784';ctx.shadowBlur=12;
-      ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#fff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('+',0,4);
+      ctx.fillStyle='#5cb85c'; ctx.shadowColor='#81c784'; ctx.shadowBlur=12;
+      ctx.beginPath(); ctx.arc(0,0,9,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='bold 11px sans-serif'; ctx.textAlign='center'; ctx.fillText('+',0,4);
     }
-    ctx.shadowBlur=0;ctx.restore();
+    ctx.shadowBlur=0; ctx.restore();
   }
 }
 
 function drawZone(){
-  const W=canvas.width,H=canvas.height;
-  const zsx=zone.cx-cam.x,zsy=zone.cy-cam.y;
-  // outer darkness
+  const W=canvas.width, H=canvas.height;
+  const zsx=zone.cx-cam.x, zsy=zone.cy-cam.y;
   ctx.save();
-  ctx.fillStyle='rgba(10,20,80,0.25)';
-  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(10,20,80,0.22)'; ctx.fillRect(0,0,W,H);
   ctx.globalCompositeOperation='destination-out';
-  ctx.beginPath();ctx.arc(zsx,zsy,zone.r,0,Math.PI*2);ctx.fill();
+  ctx.beginPath(); ctx.arc(zsx,zsy,zone.r,0,Math.PI*2); ctx.fill();
   ctx.globalCompositeOperation='source-over';
   ctx.restore();
-  // ring
-  ctx.strokeStyle='rgba(80,160,255,0.9)';ctx.lineWidth=2;
+  ctx.strokeStyle='rgba(80,160,255,0.85)'; ctx.lineWidth=2;
   ctx.setLineDash([14,10]);
-  ctx.beginPath();ctx.arc(zsx,zsy,zone.r,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath(); ctx.arc(zsx,zsy,zone.r,0,Math.PI*2); ctx.stroke();
   ctx.setLineDash([]);
 }
 
-function drawPlayer(p,isMe){
+function drawPlayer(p, isMe){
   if(!p||!p.alive) return;
-  const sx=p.x-cam.x,sy=p.y-cam.y;
-  const col=isMe?'#52a8e0':'#e05252';
-  const col2=isMe?'#1a4a70':'#701a1a';
-  const flash=p.invuln>0&&Math.floor(Date.now()/80)%2===0;
-  if(flash) ctx.globalAlpha=0.3;
+  const sx=p.x-cam.x, sy=p.y-cam.y;
+  const col=isMe?'#52a8e0':'#e05252', col2=isMe?'#1a4a70':'#701a1a';
   // shadow
-  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(sx,sy+12,12,5,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.28)'; ctx.beginPath(); ctx.ellipse(sx,sy+12,12,5,0,0,Math.PI*2); ctx.fill();
   // body
-  ctx.fillStyle=col2;ctx.beginPath();ctx.arc(sx,sy,17,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=col;ctx.beginPath();ctx.arc(sx,sy,14,0,Math.PI*2);ctx.fill();
-  // highlight
-  ctx.fillStyle='rgba(255,255,255,0.18)';ctx.beginPath();ctx.arc(sx-4,sy-4,6,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=col2; ctx.beginPath(); ctx.arc(sx,sy,17,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=col;  ctx.beginPath(); ctx.arc(sx,sy,14,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.beginPath(); ctx.arc(sx-4,sy-4,6,0,Math.PI*2); ctx.fill();
   // gun
-  const gx=sx+Math.cos(p.angle)*16,gy=sy+Math.sin(p.angle)*16;
-  ctx.strokeStyle='#1a1208';ctx.lineWidth=6;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(gx,gy);ctx.stroke();
-  ctx.strokeStyle=col;ctx.lineWidth=3.5;
-  ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(gx,gy);ctx.stroke();
+  const gx=sx+Math.cos(p.angle)*16, gy=sy+Math.sin(p.angle)*16;
+  ctx.strokeStyle='#1a1208'; ctx.lineWidth=6; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(gx,gy); ctx.stroke();
+  ctx.strokeStyle=col; ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(gx,gy); ctx.stroke();
   // nametag
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.beginPath();ctx.roundRect(sx-20,sy-34,40,14,3);ctx.fill();
-  ctx.fillStyle=col;ctx.font='700 10px Rajdhani';ctx.textAlign='center';
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.beginPath(); ctx.roundRect(sx-20,sy-34,40,14,3); ctx.fill();
+  ctx.fillStyle=col; ctx.font='700 10px Rajdhani'; ctx.textAlign='center';
   ctx.fillText(p.name.substring(0,10),sx,sy-23);
   // hp bar
-  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(sx-16,sy-19,32,5);
-  ctx.fillStyle=col;ctx.fillRect(sx-16,sy-19,Math.max(0,(p.hp/p.maxHp)*32),5);
-  ctx.globalAlpha=1;
+  ctx.fillStyle='rgba(0,0,0,0.5)'; ctx.fillRect(sx-16,sy-19,32,5);
+  ctx.fillStyle=col; ctx.fillRect(sx-16,sy-19,Math.max(0,(p.hp/p.maxHp)*32),5);
 }
 
 function drawBullets(){
+  ctx.shadowColor='#ffcc00'; ctx.shadowBlur=6;
   for(const b of bullets){
-    const sx=b.x-cam.x,sy=b.y-cam.y;
     ctx.fillStyle='#ffe44a';
-    ctx.shadowColor='#ffcc00';ctx.shadowBlur=6;
-    ctx.beginPath();ctx.arc(sx,sy,b.r,0,Math.PI*2);ctx.fill();
+    ctx.beginPath(); ctx.arc(b.x-cam.x,b.y-cam.y,b.r,0,Math.PI*2); ctx.fill();
   }
   ctx.shadowBlur=0;
 }
@@ -809,10 +706,10 @@ function drawBullets(){
 function drawParticles(){
   for(let i=particles.length-1;i>=0;i--){
     const p=particles[i];
-    p.x+=p.vx;p.y+=p.vy;p.vx*=0.91;p.vy*=0.91;p.life-=0.035;
+    p.x+=p.vx; p.y+=p.vy; p.vx*=0.91; p.vy*=0.91; p.life-=0.035;
     if(p.life<=0){particles.splice(i,1);continue;}
-    ctx.globalAlpha=p.life;ctx.fillStyle=p.color;
-    ctx.beginPath();ctx.arc(p.x-cam.x,p.y-cam.y,p.r*p.life,0,Math.PI*2);ctx.fill();
+    ctx.globalAlpha=p.life; ctx.fillStyle=p.color;
+    ctx.beginPath(); ctx.arc(p.x-cam.x,p.y-cam.y,p.r*p.life,0,Math.PI*2); ctx.fill();
   }
   ctx.globalAlpha=1;
 }
@@ -820,28 +717,24 @@ function drawParticles(){
 function drawMinimap(){
   const sc=140/MAP.w;
   mmCtx.clearRect(0,0,140,140);
-  mmCtx.fillStyle='rgba(15,20,10,0.85)';mmCtx.fillRect(0,0,140,140);
+  mmCtx.fillStyle='rgba(15,20,10,0.88)'; mmCtx.fillRect(0,0,140,140);
   for(const pk of pickups){
     if(!pk.active) continue;
     mmCtx.fillStyle=pk.type==='ammo'?'#e8d060':'#5cb85c';
     mmCtx.fillRect(pk.x*sc-1,pk.y*sc-1,2,2);
   }
-  mmCtx.strokeStyle='rgba(80,160,255,0.7)';mmCtx.lineWidth=1;
-  mmCtx.beginPath();mmCtx.arc(zone.cx*sc,zone.cy*sc,zone.r*sc,0,Math.PI*2);mmCtx.stroke();
-  if(myPlayer&&myPlayer.alive){
-    mmCtx.fillStyle='#52a8e0';mmCtx.beginPath();mmCtx.arc(myPlayer.x*sc,myPlayer.y*sc,3.5,0,Math.PI*2);mmCtx.fill();
-  }
-  if(enemyPlayer&&enemyPlayer.alive){
-    mmCtx.fillStyle='#e05252';mmCtx.beginPath();mmCtx.arc(enemyPlayer.x*sc,enemyPlayer.y*sc,3.5,0,Math.PI*2);mmCtx.fill();
-  }
-  mmCtx.strokeStyle='rgba(200,184,122,0.25)';mmCtx.lineWidth=1;
+  mmCtx.strokeStyle='rgba(80,160,255,0.7)'; mmCtx.lineWidth=1;
+  mmCtx.beginPath(); mmCtx.arc(zone.cx*sc,zone.cy*sc,zone.r*sc,0,Math.PI*2); mmCtx.stroke();
+  if(myPlayer&&myPlayer.alive){ mmCtx.fillStyle='#52a8e0'; mmCtx.beginPath(); mmCtx.arc(myPlayer.x*sc,myPlayer.y*sc,3.5,0,Math.PI*2); mmCtx.fill(); }
+  if(enemyPlayer&&enemyPlayer.alive){ mmCtx.fillStyle='#e05252'; mmCtx.beginPath(); mmCtx.arc(enemyPlayer.x*sc,enemyPlayer.y*sc,3.5,0,Math.PI*2); mmCtx.fill(); }
+  mmCtx.strokeStyle='rgba(200,184,122,0.2)'; mmCtx.lineWidth=1;
   mmCtx.strokeRect(cam.x*sc,cam.y*sc,canvas.width*sc,canvas.height*sc);
 }
 
 function updateHUD(){
   if(!myPlayer) return;
   const hp=Math.max(0,Math.round(myPlayer.hp));
-  document.getElementById('my-hp-bar').style.width=(hp)+'%';
+  document.getElementById('my-hp-bar').style.width=hp+'%';
   document.getElementById('my-hp-bar').style.background=hp>60?'linear-gradient(90deg,#e05252,#e87a7a)':hp>30?'linear-gradient(90deg,#e09020,#e0b040)':'linear-gradient(90deg,#800,#b00)';
   document.getElementById('my-hp-num').textContent=hp;
   document.getElementById('hud-ammo').innerHTML=myPlayer.ammo+' <span>/ '+myPlayer.maxAmmo+'</span>';
@@ -850,58 +743,39 @@ function updateHUD(){
   document.getElementById('hud-zone').textContent=inZone?'🔵 안전 구역':'⚠️ 구역 밖';
   document.getElementById('hud-zone').style.color=inZone?'#88c0f0':'#e05252';
   if(enemyPlayer){
-    const ehp=Math.max(0,(enemyPlayer.hp/enemyPlayer.maxHp)*100);
-    document.getElementById('enemy-hp-bar').style.width=ehp+'%';
+    document.getElementById('enemy-hp-bar').style.width=Math.max(0,(enemyPlayer.hp/enemyPlayer.maxHp)*100)+'%';
   }
 }
 
-// ─── WIN CHECK ───────────────────────────────────────────────
-let winShown=false;
+// ── Win check ──────────────────────────────────────────────
 function checkWin(){
   if(winShown) return;
   const myDead=myPlayer&&!myPlayer.alive;
-  const enemyDead=enemyPlayer&&!enemyPlayer.alive;
-  if(!myDead&&!enemyDead) return;
-  winShown=true;
-  gameActive=false;
+  const enDead=enemyPlayer&&!enemyPlayer.alive;
+  if(!myDead&&!enDead) return;
+  winShown=true; gameActive=false;
   const elapsed=Math.round((Date.now()-gameStartTime)/1000);
-  const title=document.getElementById('winner-title');
-  const sub=document.getElementById('winner-sub');
-  const stats=document.getElementById('winner-stats');
-  if(myDead&&enemyDead){title.textContent='무승부';title.style.color='#c8b87a';sub.textContent='두 플레이어 모두 전사';}
-  else if(enemyDead){title.textContent='VICTORY!';title.style.color='#52a8e0';sub.textContent='적을 처치했습니다';}
-  else{title.textContent='DEFEAT';title.style.color='#e05252';sub.textContent='다음엔 더 잘 해봐요';}
-  stats.innerHTML=`
-    <div style="color:var(--dim);font-size:11px;letter-spacing:2px;margin-bottom:8px;">MATCH STATS</div>
-    킬  ${myKills}<br>
-    생존  ${elapsed}초<br>
-    HP  ${Math.round(Math.max(0,myPlayer?.hp||0))}
-  `;
+  if(myDead&&enDead){ document.getElementById('winner-title').textContent='무승부'; document.getElementById('winner-title').style.color='#c8b87a'; document.getElementById('winner-sub').textContent='두 플레이어 모두 전사'; }
+  else if(enDead){ document.getElementById('winner-title').textContent='VICTORY!'; document.getElementById('winner-title').style.color='#52a8e0'; document.getElementById('winner-sub').textContent='적을 처치했습니다'; }
+  else{ document.getElementById('winner-title').textContent='DEFEAT'; document.getElementById('winner-title').style.color='#e05252'; document.getElementById('winner-sub').textContent='다음엔 더 잘 해봐요'; }
+  document.getElementById('winner-stats').innerHTML='<div style="color:var(--dim);font-size:11px;letter-spacing:2px;margin-bottom:8px;">MATCH STATS</div>킬  '+myKills+'<br>생존  '+elapsed+'초<br>HP  '+Math.round(Math.max(0,myPlayer?myPlayer.hp:0));
   document.getElementById('winner').style.display='flex';
   cancelAnimationFrame(animId);
+  if(roomRef) roomRef.off();
 }
 
-// ─── MAIN LOOP ───────────────────────────────────────────────
+// ── Main loop ──────────────────────────────────────────────
 function loop(){
   animId=requestAnimationFrame(loop);
-  updateMyPlayer();
-  updateBullets();
-  updateCamera();
+  updateMyPlayer(); updateBullets(); updateCamera();
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  drawWorld();
-  drawZone();
-  drawPickups();
-  drawObstacles();
-  drawBullets();
-  drawParticles();
-  drawPlayer(enemyPlayer,false);
-  drawPlayer(myPlayer,true);
-  drawMinimap();
-  updateHUD();
-  checkWin();
+  drawWorld(); drawZone(); drawPickups(); drawObstacles();
+  drawBullets(); drawParticles();
+  drawPlayer(enemyPlayer,false); drawPlayer(myPlayer,true);
+  drawMinimap(); updateHUD(); checkWin();
 }
 
-// ─── UI / SCREEN SWITCHING ───────────────────────────────────
+// ── Screen switching ───────────────────────────────────────
 function showScreen(name){
   document.getElementById('lobby').style.display='none';
   document.getElementById('waiting').style.display='none';
@@ -910,40 +784,40 @@ function showScreen(name){
   else if(name==='hud') document.getElementById('hud').style.display='';
 }
 
-// ─── LOBBY BUTTONS ───────────────────────────────────────────
-document.getElementById('quickJoinBtn').addEventListener('click',async()=>{
+// ── Button handlers ────────────────────────────────────────
+document.getElementById('quickJoinBtn').addEventListener('click', ()=>{
   const name=document.getElementById('nameInput').value.trim()||'Player';
-  document.getElementById('quickJoinBtn').disabled=true;
-  setStatus('방을 찾는 중...','wait');
-  try{ await quickJoin(name); }
-  catch(e){ setStatus('오류: '+e.message,'err'); document.getElementById('quickJoinBtn').disabled=false; }
+  setBtn(true); setStatus('방을 찾는 중...','wait');
+  quickJoin(name)
+    .catch(e=>{ setStatus('오류: '+e.message,'err'); setBtn(false); });
 });
-document.getElementById('createRoomBtn').addEventListener('click',async()=>{
+
+document.getElementById('createRoomBtn').addEventListener('click', ()=>{
   const name=document.getElementById('nameInput').value.trim()||'Player';
-  setStatus('방 만드는 중...','wait');
-  try{ await createRoom(name); }
-  catch(e){ setStatus('오류: '+e.message,'err'); }
+  setBtn(true); setStatus('방 만드는 중...','wait');
+  createRoom(name)
+    .catch(e=>{ setStatus('오류: '+e.message,'err'); setBtn(false); });
 });
-document.getElementById('joinRoomBtn').addEventListener('click',async()=>{
+
+document.getElementById('joinRoomBtn').addEventListener('click', ()=>{
   const name=document.getElementById('nameInput').value.trim()||'Player';
   const code=document.getElementById('roomInput').value.trim();
-  if(!code){setStatus('방 코드를 입력하세요','err');return;}
-  setStatus('참가 중...','wait');
-  try{ await joinRoom(name,code); }
-  catch(e){ setStatus('오류: '+e.message,'err'); }
+  if(!code){ setStatus('방 코드를 입력하세요','err'); return; }
+  setBtn(true); setStatus('참가 중...','wait');
+  joinRoom(name, code)
+    .catch(e=>{ setStatus('오류: '+e.message,'err'); setBtn(false); });
 });
-document.getElementById('cancelBtn').addEventListener('click',()=>{
-  if(roomCode) remove(ref(db,`surviv_rooms/${roomCode}`));
-  showScreen('lobby'); document.getElementById('lobby').style.display='flex';
-  document.getElementById('quickJoinBtn').disabled=false;
-  setStatus('');
+
+document.getElementById('cancelBtn').addEventListener('click', ()=>{
+  if(roomRef) roomRef.off();
+  if(roomCode) db.ref('surviv_rooms/'+roomCode).remove();
+  document.getElementById('lobby').style.display='flex';
+  document.getElementById('waiting').style.display='none';
+  setBtn(false); setStatus('');
 });
-document.getElementById('replayBtn').addEventListener('click',()=>{
-  location.reload();
-});
-document.getElementById('lobbyBtn').addEventListener('click',()=>{
-  location.reload();
-});
+
+document.getElementById('replayBtn').addEventListener('click', ()=>location.reload());
+document.getElementById('lobbyBtn').addEventListener('click', ()=>location.reload());
 </script>
 </body>
 </html>
